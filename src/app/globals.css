@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: "Onest Variable", Onest, Arial, sans-serif;
+  --font-sans: var(--font-onest), Arial, sans-serif;
 }
 
 @layer base {
@@ -43,7 +43,7 @@
 
   *, *::before, *::after { box-sizing: border-box; }
   html { min-height: 100%; background: var(--paper); scroll-behavior: smooth; }
-  body { min-height: 100vh; margin: 0; background: var(--paper); color: var(--ink); font-family: "Onest Variable", Onest, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { min-height: 100vh; margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font-onest), Arial, sans-serif; -webkit-font-smoothing: antialiased; }
   button, input, select, textarea { font-family: inherit; font-size: inherit; line-height: inherit; }
   button { cursor: pointer; }
   button, a { -webkit-tap-highlight-color: transparent; }
