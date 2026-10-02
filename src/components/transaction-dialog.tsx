@@ -10,7 +10,7 @@ import { Button, Select } from "@/components/ui/primitives";
 import { useSheetDismiss } from "@/components/ui/use-sheet-dismiss";
 import { DateField } from "@/components/ui/date-field";
 
-export function TransactionDialog({ open, transaction, categories, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: MonthTransaction | null; categories: Category[]; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
+export function TransactionDialog({ open, transaction, categories, defaultType = "expense", offline = false, onClose, onSaved }: { open: boolean; transaction?: MonthTransaction | null; categories: Category[]; defaultType?: TransactionType; offline?: boolean; onClose: () => void; onSaved: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [type, setType] = useState<TransactionType>(transaction?.type || defaultType);
   const [amount, setAmount] = useState(transaction ? String(transaction.amount).replace(".", ",") : "");
@@ -32,6 +32,7 @@ export function TransactionDialog({ open, transaction, categories, defaultType =
   };
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setError("");
+    if (offline) { setError("Necesitas conexión para guardar movimientos."); return; }
     const numericAmount = Number(amount.replace(",", "."));
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) { setError("Escribe un importe mayor que cero."); return; }
     startTransition(async () => {
@@ -57,7 +58,7 @@ export function TransactionDialog({ open, transaction, categories, defaultType =
       <label className="field-label" htmlFor="movement-date">Fecha</label>
        <DateField id="movement-date" required value={date} onChange={setDate} className="mb-4" />
       {error && <p className="mb-3 text-sm text-[var(--expense)]" role="alert">{error}</p>}
-      <Button disabled={pending} type="submit" className="w-full">{pending ? "Guardando…" : transaction ? "Guardar cambios" : "Guardar movimiento"}</Button>
+       <Button disabled={pending || offline} type="submit" className="w-full">{offline ? "Sin conexión" : pending ? "Guardando…" : transaction ? "Guardar cambios" : "Guardar movimiento"}</Button>
     </form>
   </dialog>;
 }
