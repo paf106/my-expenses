@@ -10,7 +10,7 @@ if (!projectId) {
 }
 
 const cli = process.platform === "win32" ? "supabase.exe" : "supabase";
-const child = spawn(cli, ["gen", "types", "typescript", "--project-id", projectId, "--schema", "public"], { stdio: ["ignore", "pipe", "inherit"] });
+const child = spawn(cli, ["gen", "types", "--lang", "typescript", "--project-id", projectId, "--schema", "public"], { stdio: ["ignore", "pipe", "inherit"] });
 const temporaryOutput = "src/lib/supabase/database.types.ts.tmp";
 try {
   const [exitCode] = await Promise.all([

@@ -51,3 +51,5 @@ end;
 $$;
 
 revoke all on function public.run_recurring() from public, anon, authenticated;
+select cron.unschedule(jobid) from cron.job where jobname = 'my-expenses-recurring-daily';
+select cron.schedule('my-expenses-recurring-daily', '5 2 * * *', $$select public.run_recurring();$$);

@@ -9,7 +9,7 @@ import { localToday } from "@/lib/utils";
 import { Button, Select } from "@/components/ui/primitives";
 import { useSheetDismiss } from "@/components/ui/use-sheet-dismiss";
 
-export function TransactionDialog({ open, transaction, categories, onCategoriesChanged, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: Transaction | null; categories: Category[]; onCategoriesChanged: (categories: Category[]) => void; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
+export function TransactionDialog({ open, transaction, categories, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: Transaction | null; categories: Category[]; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [type, setType] = useState<TransactionType>(transaction?.type || defaultType);
   const [amount, setAmount] = useState(transaction ? String(transaction.amount).replace(".", ",") : "");
@@ -20,7 +20,7 @@ export function TransactionDialog({ open, transaction, categories, onCategoriesC
   const [pending, startTransition] = useTransition();
   const { closing, dismiss } = useSheetDismiss(onClose);
   useEffect(() => { const element = dialog.current; if (!element) return; if (open && !element.open) element.showModal(); if (!open && element.open) element.close(); }, [open]);
-  const options = categories.filter((category) => category.type === type);
+  const options = categories.filter((category) => !category.archived && category.type === type);
   const close = (callback: () => void, force = false) => {
     if (pending && !force) return;
     dismiss(() => {
@@ -38,10 +38,6 @@ export function TransactionDialog({ open, transaction, categories, onCategoriesC
       const values = { type, amount: numericAmount, description: description.trim(), category_id: categoryId || null, date };
       const { error: saveError } = transaction ? await supabase.from("transactions").update(values).eq("id", transaction.id) : await supabase.from("transactions").insert(values);
       if (saveError) { setError(saveError.message.includes("Failed to fetch") ? "No se pudo conectar. Comprueba tu conexión y vuelve a intentarlo." : "No se pudo guardar. Inicia sesión y asegúrate de haber aplicado el esquema de Supabase."); return; }
-      if (categoryId) {
-        const selectedCategory = categories.find((item) => item.id === categoryId);
-        if (selectedCategory) onCategoriesChanged(categories.map((item) => item.id === categoryId ? selectedCategory : item));
-      }
       setAmount(""); setDescription(""); setCategoryId(""); close(onSaved, true);
     });
   };

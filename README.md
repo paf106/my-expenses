@@ -26,9 +26,9 @@ La migración crea RLS por usuario, categorías iniciales al crear manualmente e
 
 ### Supabase: endurecimiento y tipos
 
-La migración `supabase/migrations/0002_hardening.sql` revoca la ejecución directa de la función que crea categorías al registrar el usuario y hace que el cron recupere ocurrencias recurrentes pendientes usando la fecha de `Europe/Madrid`. Aplica el contenido en **Supabase → SQL Editor** antes del siguiente release de producción. No modifica movimientos existentes.
+La migración `supabase/migrations/0002_hardening.sql` revoca la ejecución directa de la función que crea categorías al registrar el usuario, hace que el cron recupere ocurrencias recurrentes pendientes usando la fecha de `Europe/Madrid` y mueve la ejecución diaria a las 02:05 UTC para evitar adelantar la fecha local. Aplica el contenido en **Supabase → SQL Editor** antes del siguiente release de producción. No modifica movimientos existentes.
 
-Para generar tipos actualizados desde el proyecto conectado, instala/autentícate con Supabase CLI, define la referencia del proyecto y ejecuta:
+Para generar tipos actualizados desde el proyecto conectado, instala y autentica Supabase CLI. Después, en PowerShell, define la referencia del proyecto y ejecuta:
 
 ```powershell
 supabase login
@@ -40,7 +40,7 @@ El CLI escribe temporalmente y reemplaza el archivo de tipos solo si termina cor
 
 ## CI/CD y despliegues
 
-GitHub Actions ejecuta lint, comprobación de tipos, auditoría de dependencias de producción y build en cada pull request y en cada push a `main`. Los despliegues de producción solo se inician al subir un tag semver con formato `v*.*.*` (por ejemplo, `v0.1.0`). El flujo exige que el commit del tag esté en `main` y que el número de versión de `package.json` coincida con el tag. La integración de despliegue Git de Vercel está desactivada para evitar despliegues automáticos por push.
+GitHub Actions ejecuta lint, comprobación de tipos, tests unitarios, auditoría de dependencias de producción y build en cada pull request y en cada push a `main`. Los despliegues de producción solo se inician al subir un tag semver con formato `v*.*.*` (por ejemplo, `v0.1.0`). El flujo exige que el commit del tag esté en `main` y que el número de versión de `package.json` coincida con el tag. La integración de despliegue Git de Vercel está desactivada para evitar despliegues automáticos por push.
 
 Para preparar Vercel, enlaza el proyecto con `npx vercel link` y configura en Production las variables `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. En GitHub, configura el secret `VERCEL_TOKEN` y las variables `VERCEL_TEAM_ID` y `VERCEL_PROJECT_ID` en **Settings > Secrets and variables > Actions**. El CI usa valores ficticios de Supabase para compilar y no necesita credenciales reales.
 

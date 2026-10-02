@@ -5,8 +5,9 @@ import { getActiveCategories } from "@/lib/data/categories";
 
 export default async function PrivateLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
-  const [{ data: authData }, categories] = await Promise.all([supabase.auth.getClaims(), getActiveCategories()]);
+  const { data: authData } = await supabase.auth.getClaims();
   const claims = authData?.claims;
   if (!claims?.sub) redirect("/login");
+  const categories = await getActiveCategories();
   return <AppShell categories={categories}>{children}</AppShell>;
 }

@@ -26,7 +26,6 @@ export function AppShell({ children, categories }: { children: React.ReactNode; 
   const [quickAddType, setQuickAddType] = useState<TransactionType>("expense");
   const [dialogSession, setDialogSession] = useState(0);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [dialogCategories, setDialogCategories] = useState(categories);
   const [toast, setToast] = useState("");
   const [monthPending, startMonthTransition] = useTransition();
   const showMonth = monthRoutes.includes(pathname);
@@ -39,19 +38,17 @@ export function AppShell({ children, categories }: { children: React.ReactNode; 
   const onSettingsSubpage = pathname.startsWith("/settings/");
 
   const openQuickAdd = useCallback((requestedType?: TransactionType) => {
-    setDialogCategories(categories);
     setEditingTransaction(null);
     setQuickAddType(requestedType || defaultTransactionType);
     setDialogSession((session) => session + 1);
     setDialogOpen(true);
-  }, [categories, defaultTransactionType]);
+  }, [defaultTransactionType]);
   const openEdit = useCallback((transaction: Transaction) => {
-    setDialogCategories(categories);
     setEditingTransaction(transaction);
     setQuickAddType(transaction.type);
     setDialogSession((session) => session + 1);
     setDialogOpen(true);
-  }, [categories]);
+  }, []);
 
   const moveMonth = (amount: number) => {
     const next = toMonthDate(month);
@@ -86,7 +83,7 @@ export function AppShell({ children, categories }: { children: React.ReactNode; 
     </div>
 
     {showMobileNav && <MobileNavigation activePath={activePath} showAdd={showAdd} onAdd={() => openQuickAdd()}/>}
-    <TransactionDialog key={`${editingTransaction?.id || `new-${quickAddType}`}-${dialogSession}`} categories={dialogCategories} onCategoriesChanged={setDialogCategories} open={dialogOpen || Boolean(editingTransaction)} transaction={editingTransaction} defaultType={quickAddType} onClose={() => { setDialogOpen(false); setEditingTransaction(null); }} onSaved={() => { setDialogOpen(false); setEditingTransaction(null); notify("Movimiento guardado"); router.refresh(); }} />
+    <TransactionDialog key={`${editingTransaction?.id || `new-${quickAddType}`}-${dialogSession}`} categories={categories} open={dialogOpen || Boolean(editingTransaction)} transaction={editingTransaction} defaultType={quickAddType} onClose={() => { setDialogOpen(false); setEditingTransaction(null); }} onSaved={() => { setDialogOpen(false); setEditingTransaction(null); notify("Movimiento guardado"); router.refresh(); }} />
     {toast && <div className={`fixed left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-medium text-[var(--primary-ink)] shadow-xl md:bottom-8 ${showMobileNav ? "bottom-[calc(env(safe-area-inset-bottom)+92px)]" : "bottom-[calc(env(safe-area-inset-bottom)+20px)]"}`} role="status" aria-live="polite">{toast}</div>}
   </div></TransactionDialogContext.Provider>;
 }
