@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { AppProviders } from "@/components/app-providers";
 import { ServiceWorker } from "@/components/service-worker";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "@fontsource-variable/onest/wght.css";
 import "./globals.css";
 
@@ -18,6 +19,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return <html lang="es" suppressHydrationWarning><body>
     <script dangerouslySetInnerHTML={{ __html: `(()=>{try{const t=localStorage.getItem('my-expenses-theme')||'system';const d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.dataset.theme=d?'dark':'light'}catch{}})()` }} />
-    <AppProviders><ServiceWorker />{children}</AppProviders>
+    <AppProviders><ServiceWorker />{children}<SpeedInsights /></AppProviders>
   </body></html>;
 }

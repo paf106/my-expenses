@@ -5,8 +5,9 @@ import { currentMonth, monthBounds } from "@/lib/utils";
 const quote = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.redirect(new URL("/login", request.url));
+  const { data: authData } = await supabase.auth.getClaims();
+  const claims = authData?.claims;
+  if (!claims?.sub) return NextResponse.redirect(new URL("/login", request.url));
   const month = request.nextUrl.searchParams.get("month") || currentMonth();
   if (!/^\d{4}-\d{2}$/.test(month)) return NextResponse.json({ error: "Mes no válido" }, { status: 400 });
   const { start, end } = monthBounds(month);
