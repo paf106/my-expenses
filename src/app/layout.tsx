@@ -7,8 +7,8 @@ import "./globals.css";
 
 const onest = localFont({
   src: [
-    { path: "../../node_modules/@fontsource-variable/onest/files/onest-latin-wght-normal.woff2", weight: "100 900", style: "normal" },
-    { path: "../../node_modules/@fontsource-variable/onest/files/onest-latin-ext-wght-normal.woff2", weight: "100 900", style: "normal" },
+    { path: "../../public/fonts/onest-latin-wght-normal.woff2", weight: "100 900", style: "normal" },
+    { path: "../../public/fonts/onest-latin-ext-wght-normal.woff2", weight: "100 900", style: "normal" },
   ],
   display: "swap",
   variable: "--font-onest",
