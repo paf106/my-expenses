@@ -13,13 +13,15 @@ const CategoryChart = dynamic(() => import("@/components/charts").then((module) 
   loading: () => <div className="mx-auto aspect-square w-full max-w-[210px] animate-pulse rounded-full bg-[var(--soft-blue)]" />,
 });
 
-export function Dashboard({ month, transactions, categories, summary }: { month: string; transactions: Transaction[]; categories: Category[]; summary: { income: number; expenses: number; savings: number } }) {
-  const income = Number(summary.income);
-  const expenses = Number(summary.expenses);
+export function Dashboard({ month, transactions, categories }: { month: string; transactions: Transaction[]; categories: Category[] }) {
+  const { income, expenses } = useMemo(() => transactions.reduce((totals, transaction) => {
+    totals[transaction.type === "income" ? "income" : "expenses"] += Number(transaction.amount);
+    return totals;
+  }, { income: 0, expenses: 0 }), [transactions]);
   const savings = income - expenses;
   const overspent = expenses > income;
+  const categoryById = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
   const breakdown = useMemo(() => {
-    const categoryById = new Map(categories.map((category) => [category.id, category]));
     const totals = new Map<string, number>();
     let uncategorized = 0;
     for (const transaction of transactions) {
@@ -33,8 +35,9 @@ export function Dashboard({ month, transactions, categories, summary }: { month:
     }).sort((a, b) => b.total - a.total);
     if (uncategorized > 0) items.push({ id: "uncategorized", user_id: "", name: "Sin categoría", type: "expense", icon: "circle-ellipsis", color: "#8993a4", monthly_budget: null, archived: false, created_at: "", total: uncategorized });
     return items;
-  }, [categories, transactions]);
+  }, [categories, transactions, categoryById]);
   const categorySum = breakdown.reduce((sum, item) => sum + item.total, 0);
+  const categorySpent = useMemo(() => new Map(breakdown.map((item) => [item.id, item.total])), [breakdown]);
   const spentPercent = income > 0 ? Math.min(expenses / income * 100, 100) : expenses > 0 ? 100 : 0;
   const savingsPercent = income > 0 ? Math.max(0, 100 - spentPercent) : 0;
   const recent = transactions.slice(0, 4);
@@ -72,7 +75,7 @@ export function Dashboard({ month, transactions, categories, summary }: { month:
     <section className="card flex h-full flex-col p-5 md:p-6">
       <div className="mb-5 flex items-start justify-between gap-3"><div><h2 className="m-0 text-base font-semibold">Tus límites</h2><p className="muted mb-0 mt-1 text-sm">Presupuestos del mes</p></div><Link href="/settings/categories" className="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-[var(--ink)] no-underline hover:bg-[var(--soft-blue)]">Editar</Link></div>
       {budgets.length ? <div className="space-y-4">{budgets.map((category) => {
-        const spent = transactions.filter((transaction) => transaction.category_id === category.id && transaction.type === "expense").reduce((sum, transaction) => sum + Number(transaction.amount), 0);
+         const spent = categorySpent.get(category.id) || 0;
         const limit = Number(category.monthly_budget || 0);
         const percentage = limit > 0 ? Math.min(spent / limit * 100, 100) : 0;
         return <div key={category.id}><div className="mb-2 flex items-center justify-between gap-2"><span className="flex min-w-0 items-center gap-2 text-sm"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ color: category.color, backgroundColor: `color-mix(in srgb, ${category.color} 14%, transparent)` }}><CategoryIcon name={category.icon} size={17} /></span><span className="truncate">{category.name}</span></span><span className="amount shrink-0 text-xs font-medium">{euro(spent)} <span className="muted">/ {euro(limit)}</span></span></div><div className="h-2 overflow-hidden rounded-full bg-[var(--soft-blue)]"><div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: spent > limit ? "var(--expense)" : category.color }} /></div></div>;
@@ -81,7 +84,7 @@ export function Dashboard({ month, transactions, categories, summary }: { month:
 
     <section className="card flex h-full flex-col p-5 md:p-6">
       <div className="mb-3 flex items-start justify-between gap-3"><div><h2 className="m-0 text-base font-semibold">Últimos movimientos</h2><p className="muted mb-0 mt-1 text-sm">Lo más reciente de tu mes</p></div><Link href="/transactions" className="flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-semibold text-[var(--ink)] no-underline hover:bg-[var(--soft-blue)]">Ver todos <ArrowRight size={15} /></Link></div>
-      {recent.length ? <ul className="m-0 list-none divide-y divide-[var(--line)] p-0">{recent.map((transaction) => <li key={transaction.id} className="flex items-center gap-3 py-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: transaction.category?.color || "var(--muted)", backgroundColor: transaction.category?.color ? `color-mix(in srgb, ${transaction.category.color} 14%, transparent)` : "var(--soft-blue)" }}><CategoryIcon name={transaction.category?.icon} size={18} /></span><div className="min-w-0 flex-1"><p className="m-0 truncate text-sm font-medium">{transaction.description || transaction.category?.name || "Movimiento"}</p><p className="muted m-0 mt-1 text-xs">{transaction.category?.name || "Sin categoría"} · {dateLabel(transaction.date)}</p></div><span className={`amount shrink-0 whitespace-nowrap text-xs font-semibold sm:text-sm ${transaction.type === "income" ? "text-[var(--income)]" : ""}`}>{transaction.type === "income" ? "+" : "−"}{euro(transaction.amount)}</span></li>)}</ul> : <div className="flex min-h-32 flex-1 flex-col items-center justify-center text-center"><span className="mb-2 rounded-xl bg-[var(--soft-blue)] p-3"><Wallet size={20} /></span><p className="m-0 text-sm font-medium">Todavía no hay movimientos</p><p className="muted mt-1 text-xs">Pulsa + y apunta el primero.</p></div>}
+      {recent.length ? <ul className="m-0 list-none divide-y divide-[var(--line)] p-0">{recent.map((transaction) => { const category = transaction.category_id ? categoryById.get(transaction.category_id) : null; return <li key={transaction.id} className="flex items-center gap-3 py-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: category?.color || "var(--muted)", backgroundColor: category?.color ? `color-mix(in srgb, ${category.color} 14%, transparent)` : "var(--soft-blue)" }}><CategoryIcon name={category?.icon} size={18} /></span><div className="min-w-0 flex-1"><p className="m-0 truncate text-sm font-medium">{transaction.description || category?.name || "Movimiento"}</p><p className="muted m-0 mt-1 text-xs">{category?.name || "Sin categoría"} · {dateLabel(transaction.date)}</p></div><span className={`amount shrink-0 whitespace-nowrap text-xs font-semibold sm:text-sm ${transaction.type === "income" ? "text-[var(--income)]" : ""}`}>{transaction.type === "income" ? "+" : "−"}{euro(transaction.amount)}</span></li>; })}</ul> : <div className="flex min-h-32 flex-1 flex-col items-center justify-center text-center"><span className="mb-2 rounded-xl bg-[var(--soft-blue)] p-3"><Wallet size={20} /></span><p className="m-0 text-sm font-medium">Todavía no hay movimientos</p><p className="muted mt-1 text-xs">Pulsa + y apunta el primero.</p></div>}
     </section>
   </div>;
 }

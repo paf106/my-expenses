@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Plus, Repeat2, Trash2 } from "lucide-react";
 import type { Category, RecurringTransaction, TransactionType, Frequency } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
@@ -11,15 +10,15 @@ import { Button, Card, Field, Select } from "@/components/ui/primitives";
 import { PageHeading } from "@/components/ui/page-heading";
 
 export function RecurringView({ recurring, categories, today }: { recurring: RecurringTransaction[]; categories: Category[]; today: string }) {
-  const [rows, setRows] = useState(recurring); const [type, setType] = useState<TransactionType>("expense"); const [amount, setAmount] = useState(""); const [description, setDescription] = useState(""); const [categoryId, setCategoryId] = useState(""); const [frequency, setFrequency] = useState<Frequency>("monthly"); const [nextRun, setNextRun] = useState(today); const [error, setError] = useState(""); const [pending, startTransition] = useTransition(); const router = useRouter();
+  const [rows, setRows] = useState(recurring); const [type, setType] = useState<TransactionType>("expense"); const [amount, setAmount] = useState(""); const [description, setDescription] = useState(""); const [categoryId, setCategoryId] = useState(""); const [frequency, setFrequency] = useState<Frequency>("monthly"); const [nextRun, setNextRun] = useState(today); const [error, setError] = useState(""); const [pending, startTransition] = useTransition();
   const save = (event: React.FormEvent<HTMLFormElement>) => { event.preventDefault(); setError(""); const numericAmount = Number(amount.replace(",", ".")); if (!Number.isFinite(numericAmount) || numericAmount <= 0) { setError("Introduce un importe válido mayor que cero."); return; } startTransition(async () => {
     const supabase = createClient(); const { data: { user } } = await supabase.auth.getUser(); if (!user) { setError("Inicia sesión para guardar un movimiento recurrente."); return; }
     const { data, error: saveError } = await supabase.from("recurring_transactions").insert({ user_id: user.id, type, amount: numericAmount, description: description.trim(), category_id: categoryId || null, frequency, next_run: nextRun, end_date: null, active: true }).select().single();
     if (saveError) { setError("No se pudo guardar. Comprueba que el esquema de Supabase está aplicado."); return; }
-    setRows((current) => [...current, data]); setAmount(""); setDescription(""); router.refresh();
+    setRows((current) => [...current, data]); setAmount(""); setDescription("");
   }); };
-  const toggle = (row: RecurringTransaction) => startTransition(async () => { const { error: updateError } = await createClient().from("recurring_transactions").update({ active: !row.active }).eq("id", row.id); if (!updateError) { setRows((current) => current.map((item) => item.id === row.id ? { ...item, active: !item.active } : item)); router.refresh(); } });
-  const remove = (row: RecurringTransaction) => startTransition(async () => { const { error: deleteError } = await createClient().from("recurring_transactions").delete().eq("id", row.id); if (!deleteError) { setRows((current) => current.filter((item) => item.id !== row.id)); router.refresh(); } });
+  const toggle = (row: RecurringTransaction) => startTransition(async () => { const { error: updateError } = await createClient().from("recurring_transactions").update({ active: !row.active }).eq("id", row.id); if (!updateError) setRows((current) => current.map((item) => item.id === row.id ? { ...item, active: !item.active } : item)); });
+  const remove = (row: RecurringTransaction) => startTransition(async () => { const { error: deleteError } = await createClient().from("recurring_transactions").delete().eq("id", row.id); if (!deleteError) setRows((current) => current.filter((item) => item.id !== row.id)); });
   return <div className="max-w-5xl"><PageHeading description="Programa cargos e ingresos que se repiten y consulta la próxima fecha." backHref="/settings"/><div className="grid gap-4 md:gap-6 xl:grid-cols-2">
     <form onSubmit={save} className="card h-fit space-y-4 p-5 md:p-6"><div><h2 className="m-0 text-base font-semibold">Añadir recurrente</h2><p className="muted mb-0 mt-1 text-sm">Se registrará automáticamente en la fecha indicada.</p></div>
       <div className="grid grid-cols-2 rounded-xl bg-[var(--soft-blue)] p-1">{(["expense", "income"] as const).map((item) => <button key={item} type="button" onClick={() => { setType(item); setCategoryId(""); }} className={`min-h-10 rounded-lg text-sm font-medium ${type === item ? "bg-[var(--surface)] shadow-sm" : "muted"}`}>{item === "expense" ? "Gasto" : "Ingreso"}</button>)}</div>

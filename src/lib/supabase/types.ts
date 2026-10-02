@@ -22,7 +22,7 @@ export type Transaction = {
   amount: number;
   description: string;
   date: string;
-  created_at: string;
+  created_at?: string;
   category?: Pick<Category, "id" | "name" | "icon" | "color" | "type"> | null;
 };
 

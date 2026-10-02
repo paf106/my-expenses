@@ -2,41 +2,32 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { TransactionType } from "@/lib/supabase/types";
+import type { Category, TransactionType } from "@/lib/supabase/types";
 import { X } from "lucide-react";
 import type { Transaction } from "@/lib/supabase/types";
 import { localToday } from "@/lib/utils";
 import { Button, Select } from "@/components/ui/primitives";
+import { useSheetDismiss } from "@/components/ui/use-sheet-dismiss";
 
-export function TransactionDialog({ open, transaction, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: Transaction | null; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
+export function TransactionDialog({ open, transaction, categories, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: Transaction | null; categories: Category[]; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [type, setType] = useState<TransactionType>(transaction?.type || defaultType);
   const [amount, setAmount] = useState(transaction ? String(transaction.amount).replace(".", ",") : "");
   const [description, setDescription] = useState(transaction?.description || "");
   const [categoryId, setCategoryId] = useState(transaction?.category_id || "");
   const [date, setDate] = useState(transaction?.date || localToday());
-  const [categories, setCategories] = useState<import("@/lib/supabase/types").Category[]>([]);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
-  const [closing, setClosing] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const closeCallback = useRef<(() => void) | null>(null);
+  const { closing, dismiss } = useSheetDismiss(onClose);
   useEffect(() => { const element = dialog.current; if (!element) return; if (open && !element.open) element.showModal(); if (!open && element.open) element.close(); }, [open]);
-  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
-  useEffect(() => { createClient().from("categories").select("id,user_id,name,type,icon,color,monthly_budget,archived,created_at").eq("archived", false).then(({ data }) => { if (data?.length) setCategories(data); }); }, []);
   const options = categories.filter((category) => category.type === type);
-  const dismiss = (callback: () => void, force = false) => {
-    if (closing || (pending && !force)) return;
-    closeCallback.current = callback;
-    setClosing(true);
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    closeTimer.current = setTimeout(() => {
+  const close = (callback: () => void, force = false) => {
+    if (pending && !force) return;
+    dismiss(() => {
       const element = dialog.current;
       if (element?.open) element.close();
-      setClosing(false);
-      closeCallback.current?.();
-      closeCallback.current = null;
-    }, reducedMotion ? 0 : 240);
+      callback();
+    });
   };
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setError("");
@@ -47,12 +38,12 @@ export function TransactionDialog({ open, transaction, defaultType = "expense", 
       const values = { type, amount: numericAmount, description: description.trim(), category_id: categoryId || null, date };
       const { error: saveError } = transaction ? await supabase.from("transactions").update(values).eq("id", transaction.id) : await supabase.from("transactions").insert(values);
       if (saveError) { setError(saveError.message.includes("Failed to fetch") ? "No se pudo conectar. Comprueba tu conexión y vuelve a intentarlo." : "No se pudo guardar. Inicia sesión y asegúrate de haber aplicado el esquema de Supabase."); return; }
-       setAmount(""); setDescription(""); setCategoryId(""); dismiss(onSaved, true);
+       setAmount(""); setDescription(""); setCategoryId(""); close(onSaved, true);
     });
   };
-  return <dialog ref={dialog} className={`dialog-sheet${closing ? " is-closing" : ""}`} onCancel={(event) => { event.preventDefault(); dismiss(onClose); }} onClick={(event) => { if (event.target === dialog.current) dismiss(onClose); }}>
+  return <dialog ref={dialog} className={`dialog-sheet${closing ? " is-closing" : ""}`} onCancel={(event) => { event.preventDefault(); close(onClose); }} onClick={(event) => { if (event.target === dialog.current) close(onClose); }}>
     <form onSubmit={submit} className="max-h-[90dvh] overflow-y-auto p-5 pb-[max(env(safe-area-inset-bottom),24px)] sm:p-7">
-      <div className="mb-5 flex items-center justify-between"><div><h2 className="m-0 text-xl font-semibold">{transaction ? "Editar movimiento" : "Nuevo movimiento"}</h2></div><button type="button" onClick={() => dismiss(onClose)} aria-label="Cerrar" className="icon-button text-[var(--muted)] hover:bg-[var(--soft-blue)]"><X size={19} /></button></div>
+      <div className="mb-5 flex items-center justify-between"><div><h2 className="m-0 text-xl font-semibold">{transaction ? "Editar movimiento" : "Nuevo movimiento"}</h2></div><button type="button" onClick={() => close(onClose)} aria-label="Cerrar" className="icon-button text-[var(--muted)] hover:bg-[var(--soft-blue)]"><X size={19} /></button></div>
       <div className="mb-5 grid grid-cols-2 rounded-xl bg-[var(--soft-blue)] p-1">
         {(["expense", "income"] as const).map((item) => <button key={item} type="button" onClick={() => { setType(item); setCategoryId(""); }} className={`min-h-11 rounded-lg text-sm font-semibold ${type === item ? "bg-[var(--surface)] shadow-sm" : "muted"}`}>{item === "expense" ? "Gasto" : "Ingreso"}</button>)}
       </div>

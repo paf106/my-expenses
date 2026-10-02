@@ -2,8 +2,9 @@
 
 import type { Category, Transaction } from "@/lib/supabase/types";
 import { TransactionsView } from "@/components/transactions-view";
+import { useTransactionDialog } from "@/components/transaction-dialog-context";
 
 export function TransactionsPageClient(props: { month: string; transactions: Transaction[]; categories: Category[]; initialType: string; initialCategory: string; initialSearch: string }) {
-  const onEdit = (transaction: Transaction) => window.dispatchEvent(new CustomEvent("my-expenses:edit-transaction", { detail: transaction }));
-  return <TransactionsView {...props} onEdit={onEdit}/>;
+  const { openEdit } = useTransactionDialog();
+  return <TransactionsView {...props} onEdit={openEdit}/>;
 }

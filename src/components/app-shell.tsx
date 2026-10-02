@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { ArrowLeft, ArrowRight, ChartNoAxesColumn, House, LogOut, Plus, Settings, WalletCards } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { currentMonth, monthLabel, pageGreeting } from "@/lib/utils";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { IconButton } from "@/components/ui/primitives";
+import { TransactionDialogContext } from "@/components/transaction-dialog-context";
+import type { Transaction, TransactionType } from "@/lib/supabase/types";
 
 const navItems = [
   { href: "/dashboard", label: "Inicio", icon: House },
@@ -20,15 +22,16 @@ const addRoutes = ["/dashboard", "/transactions"];
 const toMonthDate = (month: string) => new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1, 12);
 const toMonthString = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, categories }: { children: React.ReactNode; categories: import("@/lib/supabase/types").Category[] }) {
   const pathname = usePathname();
   const search = useSearchParams();
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [quickAddType, setQuickAddType] = useState<"expense" | "income">("expense");
+  const [quickAddType, setQuickAddType] = useState<TransactionType>("expense");
   const [dialogSession, setDialogSession] = useState(0);
-  const [editingTransaction, setEditingTransaction] = useState<import("@/lib/supabase/types").Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [toast, setToast] = useState("");
+  const [monthPending, startMonthTransition] = useTransition();
   const showMonth = monthRoutes.includes(pathname);
   const showAdd = addRoutes.includes(pathname);
   const showMobileNav = !pathname.startsWith("/settings/");
@@ -38,30 +41,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pageTitle = pathname === "/dashboard" ? pageGreeting() : pathname.startsWith("/transactions") ? "Movimientos" : pathname === "/stats" ? "Estadísticas" : pathname === "/settings/categories" ? "Categorías y presupuestos" : pathname === "/settings/recurring" ? "Movimientos recurrentes" : pathname === "/settings/account" ? "Cuenta y apariencia" : "Ajustes";
   const onSettingsSubpage = pathname.startsWith("/settings/");
 
-  const openQuickAdd = (requestedType?: "expense" | "income") => {
+  const openQuickAdd = (requestedType?: TransactionType) => {
     setEditingTransaction(null);
     setQuickAddType(requestedType || defaultTransactionType);
     setDialogSession((session) => session + 1);
     setDialogOpen(true);
   };
-  useEffect(() => {
-    const onEdit = (event: Event) => {
-      const transaction = (event as CustomEvent<import("@/lib/supabase/types").Transaction>).detail;
-      if (transaction) { setEditingTransaction(transaction); setDialogSession((session) => session + 1); setDialogOpen(true); }
-    };
-    const onQuickAdd = (event: Event) => {
-      const requestedType = (event as CustomEvent<{ type?: "expense" | "income" }>).detail?.type;
-      setEditingTransaction(null);
-      setQuickAddType(requestedType || defaultTransactionType);
-      setDialogOpen(true);
-    };
-    window.addEventListener("my-expenses:add-transaction", onQuickAdd);
-    window.addEventListener("my-expenses:edit-transaction", onEdit);
-    return () => {
-      window.removeEventListener("my-expenses:add-transaction", onQuickAdd);
-      window.removeEventListener("my-expenses:edit-transaction", onEdit);
-    };
-  }, [defaultTransactionType]);
+  const openEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setQuickAddType(transaction.type);
+    setDialogSession((session) => session + 1);
+    setDialogOpen(true);
+  };
 
   const moveMonth = (amount: number) => {
     const next = toMonthDate(month);
@@ -70,13 +61,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (nextMonth > currentMonth()) return;
     const params = new URLSearchParams(search.toString());
     params.set("month", nextMonth);
-    router.push(`${pathname}?${params.toString()}`);
+    startMonthTransition(() => router.push(`${pathname}?${params.toString()}`));
   };
   const logout = async () => { await createClient().auth.signOut(); router.push("/login"); router.refresh(); };
   const notify = (message: string) => { setToast(message); window.setTimeout(() => setToast(""), 2800); };
   const activePath = useMemo(() => pathname.startsWith("/settings/") ? "/settings" : pathname, [pathname]);
 
-  return <div className="app-shell md:flex">
+  return <TransactionDialogContext.Provider value={{ openNew: openQuickAdd, openEdit }}><div className="app-shell md:flex">
     <aside className="sidebar fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col px-5 py-7 md:flex">
       <Link href="/dashboard" className="mb-9 flex items-center gap-3 px-2 no-underline">
         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--primary)] text-xl font-bold text-[var(--primary-ink)]">€</span>
@@ -98,7 +89,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {showMonth && <div className="flex items-center rounded-xl border border-[var(--line)] bg-[var(--surface)] p-0.5">
               <IconButton aria-label="Mes anterior" onClick={() => moveMonth(-1)} className="min-w-10"><ArrowLeft size={17} /></IconButton>
-              <span className="min-w-[96px] px-1 text-center text-xs font-semibold sm:min-w-[124px] sm:text-sm">{monthLabel(month)}</span>
+              <span aria-live="polite" className={`min-w-[96px] px-1 text-center text-xs font-semibold transition-opacity sm:min-w-[124px] sm:text-sm ${monthPending ? "opacity-45" : ""}`}>{monthLabel(month)}</span>
               <IconButton aria-label="Mes siguiente" disabled={isCurrentMonth} onClick={() => moveMonth(1)} className="min-w-10 disabled:cursor-not-allowed disabled:opacity-35"><ArrowRight size={17} /></IconButton>
             </div>}
             {showAdd && <button onClick={() => openQuickAdd()} className="button-primary hidden min-h-11 items-center gap-2 px-4 md:inline-flex"><Plus size={17} /> Añadir</button>}
@@ -115,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </nav>
       {showAdd && <button aria-label="Añadir movimiento" onClick={() => openQuickAdd()} className="mobile-fab flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-full"><Plus size={25} strokeWidth={2.2} /></button>}
     </div>}
-    <TransactionDialog key={`${editingTransaction?.id || `new-${quickAddType}`}-${dialogSession}`} open={dialogOpen || Boolean(editingTransaction)} transaction={editingTransaction} defaultType={quickAddType} onClose={() => { setDialogOpen(false); setEditingTransaction(null); }} onSaved={() => { setDialogOpen(false); setEditingTransaction(null); notify("Movimiento guardado"); router.refresh(); }} />
+    <TransactionDialog key={`${editingTransaction?.id || `new-${quickAddType}`}-${dialogSession}`} categories={categories} open={dialogOpen || Boolean(editingTransaction)} transaction={editingTransaction} defaultType={quickAddType} onClose={() => { setDialogOpen(false); setEditingTransaction(null); }} onSaved={() => { setDialogOpen(false); setEditingTransaction(null); notify("Movimiento guardado"); router.refresh(); }} />
     {toast && <div className={`fixed left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-medium text-[var(--primary-ink)] shadow-xl md:bottom-8 ${showMobileNav ? "bottom-[calc(env(safe-area-inset-bottom)+92px)]" : "bottom-[calc(env(safe-area-inset-bottom)+20px)]"}`} role="status" aria-live="polite">{toast}</div>}
-  </div>;
+  </div></TransactionDialogContext.Provider>;
 }

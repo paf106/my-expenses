@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, X } from "lucide-react";
 import type { Category, TransactionType } from "@/lib/supabase/types";
@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { CategoryIconPicker } from "@/components/ui/category-icon-picker";
 import { ChevronRightIcon } from "@/components/ui/chevron-right-icon";
+import { useSheetDismiss } from "@/components/ui/use-sheet-dismiss";
 import { Button, Card, CardHeader } from "@/components/ui/primitives";
 import { PageHeading } from "@/components/ui/page-heading";
 
@@ -21,10 +22,7 @@ export function CategoriesView({ categories }: { categories: Category[] }) {
   const [editing, setEditing] = useState<Category | null>(null);
   const [newType, setNewType] = useState<TransactionType | null>(null);
   const [draft, setDraft] = useState<Category | null>(null);
-  const [editorClosing, setEditorClosing] = useState(false);
-  const editorCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
-  useEffect(() => () => { if (editorCloseTimer.current) clearTimeout(editorCloseTimer.current); }, []);
 
   const persist = (id: string, field: "name" | "monthly_budget", value: string) => startTransition(async () => {
     setError("");
@@ -60,14 +58,9 @@ export function CategoriesView({ categories }: { categories: Category[] }) {
     setDraft({ id: "", user_id: "", name: "", type, icon: type === "expense" ? "circle-ellipsis" : "circle-plus", color: colors[items.length % colors.length], monthly_budget: null, archived: false, created_at: "" });
   };
   const startEdit = (item: Category) => { setEditing(item); setNewType(null); setDraft({ ...item }); };
-  const closeEditor = useCallback((force = false) => {
-    if (editorClosing || (pending && !force)) return;
-    setEditorClosing(true);
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    editorCloseTimer.current = setTimeout(() => {
-      setEditing(null); setNewType(null); setDraft(null); setError(""); setEditorClosing(false);
-    }, reducedMotion ? 0 : 240);
-  }, [editorClosing, pending]);
+  const finishCloseEditor = useCallback(() => { setEditing(null); setNewType(null); setDraft(null); setError(""); }, []);
+  const { closing: editorClosing, dismiss: dismissEditor } = useSheetDismiss(finishCloseEditor);
+  const closeEditor = useCallback((force = false) => { if (pending && !force) return; dismissEditor(); }, [pending, dismissEditor]);
   useEffect(() => {
     if (!(editing || newType) || !draft) return;
     const onKeyDown = (event: KeyboardEvent) => {
