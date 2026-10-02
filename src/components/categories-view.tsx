@@ -111,15 +111,15 @@ export function CategoriesView({ categories }: { categories: Category[] }) {
     });
   };
 
-  return <div className="max-w-4xl space-y-4">
+  return <div className="motion-enter max-w-4xl space-y-4">
     <PageHeading description="Organiza tus categorías y define un límite mensual para cada gasto." backHref="/settings" />
     {(["expense", "income"] as const).map((type) => <Card key={type} className="hidden p-4 md:block md:p-6">
       <CardHeader title={type === "expense" ? "Gastos" : "Ingresos"} action={<Button type="button" variant="quiet" className="px-3" onClick={() => add(type)}><Plus size={16}/>Añadir</Button>} />
-      <div className="space-y-3">{items.filter((item) => item.type === type).map((item) => <CategoryDesktopRow key={item.id} item={item} type={type} colors={colors} onUpdate={update} onPersist={persist} onColor={setColor} onIcon={setIcon} onRemove={remove}/>)}</div>
+      <div className="motion-list space-y-3">{items.filter((item) => item.type === type).map((item) => <CategoryDesktopRow key={item.id} item={item} type={type} colors={colors} onUpdate={update} onPersist={persist} onColor={setColor} onIcon={setIcon} onRemove={remove}/>)}</div>
     </Card>)}
     {(["expense", "income"] as const).map((type) => <section key={`mobile-${type}`} className="space-y-2 md:hidden">
       <div className="flex items-center justify-between px-1"><h2 className="m-0 text-base font-semibold">{type === "expense" ? "Gastos" : "Ingresos"}</h2><Button type="button" variant="quiet" className="px-3" onClick={() => startAdd(type)}><Plus size={16}/>Añadir</Button></div>
-      {items.filter((item) => item.type === type).map((item) => <CategoryMobileCard key={item.id} item={item} type={type} onSelect={startEdit}/>)}
+      <div className="motion-list space-y-2">{items.filter((item) => item.type === type).map((item) => <CategoryMobileCard key={item.id} item={item} type={type} onSelect={startEdit}/>)}</div>
     </section>)}
     {(editing || newType) && draft && <div className={`category-editor-backdrop fixed inset-0 z-[70] flex items-end bg-[#101a2c88] backdrop-blur-[2px] md:hidden${editorClosing ? " is-closing" : ""}`} onMouseDown={(event) => { if (event.target === event.currentTarget) closeEditor(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="category-editor-title" className={`category-editor-sheet max-h-[86dvh] w-full overflow-y-auto rounded-t-[26px] border border-[var(--line)] border-b-0 bg-[var(--surface)] p-5 pb-[max(env(safe-area-inset-bottom),24px)] text-[var(--ink)] shadow-2xl${editorClosing ? " is-closing" : ""}`}>

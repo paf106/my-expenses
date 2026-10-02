@@ -12,6 +12,7 @@ export function Popover({
   children,
   align = "start",
   panelClassName,
+  className,
   mobileSheet = false,
 }: {
   label: string;
@@ -19,6 +20,7 @@ export function Popover({
   children: (close: () => void) => React.ReactNode;
   align?: "start" | "end";
   panelClassName?: string;
+  className?: string;
   mobileSheet?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -93,7 +95,7 @@ export function Popover({
     };
   }, [open, align, mobileSheet]);
 
-  return <div ref={root} className="relative inline-flex">
+  return <div ref={root} className={cx("relative inline-flex", className)}>
     {trigger({ onClick: toggle, expanded: open, controls: panelId, triggerRef })}
     {open && mobileSheet && <div className="fixed inset-0 z-[59] bg-[#101a2c88] backdrop-blur-[2px] md:hidden" aria-hidden="true" onClick={close} />}
     {open && <div
@@ -108,9 +110,9 @@ export function Popover({
         items[(index + step + items.length) % items.length]?.focus();
         event.preventDefault();
       }}
-      style={!isMobileSheetViewport(mobileSheet) && position ? { position: "fixed", top: position.top, left: position.left, width: "max-content", maxWidth: "calc(100vw - 24px)", maxHeight: position.maxHeight } : undefined}
-      className={cx(
-        "popover-panel z-[80] min-w-52 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-2 text-[var(--ink)] shadow-[0_14px_40px_rgba(10,20,40,.2)]",
+      style={{ transformOrigin: align === "end" ? "top right" : "top left", ...(!isMobileSheetViewport(mobileSheet) && position ? { position: "fixed" as const, top: position.top, left: position.left, width: "max-content", maxWidth: "calc(100vw - 24px)", maxHeight: position.maxHeight } : {}) }}
+       className={cx(
+         "popover-panel popover-enter z-[80] min-w-52 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-2 text-[var(--ink)] shadow-[0_14px_40px_rgba(10,20,40,.2)]",
         !isMobileSheetViewport(mobileSheet) && !position && (align === "end" ? "right-0" : "left-0"),
         mobileSheet && "!fixed !inset-x-2 !bottom-[calc(env(safe-area-inset-bottom)+90px)] !left-auto !right-auto !top-auto !z-[80] !max-h-[min(56dvh,440px)] !w-auto !overflow-y-auto !rounded-[26px] !p-4",
         panelClassName,

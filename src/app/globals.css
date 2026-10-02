@@ -2,6 +2,9 @@
 
 @theme inline {
   --font-sans: var(--font-onest), Arial, sans-serif;
+  --motion-fast: 150ms;
+  --motion-medium: 220ms;
+  --motion-slow: 250ms;
 }
 
 @layer base {
@@ -64,21 +67,21 @@
   .nav-link:hover, .nav-link[aria-current="page"] { color: var(--ink); background: var(--soft-blue); }
   .dialog-sheet { margin: auto 0 0; width: 100%; max-width: none; max-height: min(90dvh, 720px); border: 1px solid var(--line); border-bottom: 0; border-radius: 24px 24px 0 0; background: var(--surface); color: var(--ink); padding: 0; box-shadow: 0 -20px 70px #0b163522; }
   .dialog-sheet::backdrop { background: #101a2c88; backdrop-filter: blur(3px); }
-  .dialog-sheet[open] { animation: rise .2s ease-out; }
-  .dialog-sheet[open]::backdrop { animation: fade-in .2s ease-out; }
+  .dialog-sheet[open] { animation: rise var(--motion-medium) ease-out both; }
+  .dialog-sheet[open]::backdrop { animation: fade-in var(--motion-medium) ease-out both; }
   .dialog-sheet[open].is-closing { animation: sink .24s ease-in forwards; }
   .dialog-sheet[open].is-closing::backdrop { animation: fade-out .24s ease-in forwards; }
   .dialog-sheet.is-closing, .category-editor-backdrop.is-closing { pointer-events: none; }
-  .category-editor-backdrop { animation: fade-in .2s ease-out; }
+  .category-editor-backdrop { animation: fade-in var(--motion-medium) ease-out both; }
   .category-editor-backdrop.is-closing { animation: fade-out .24s ease-in forwards; }
-  .category-editor-sheet { animation: rise .2s ease-out; }
+  .category-editor-sheet { animation: rise var(--motion-medium) ease-out both; }
   .category-editor-sheet.is-closing { animation: sink .24s ease-in forwards; }
   .field-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 13px; font-weight: 550; }
   .control { min-height: 44px; width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); padding: 0 12px; font-size: 14px; }
   .native-select { color-scheme: light; background: var(--surface); color: var(--ink); }
   .native-select option { background: var(--surface); color: var(--ink); }
   :root[data-theme="dark"] .native-select { color-scheme: dark; }
-  .button-primary { min-height: 44px; border-radius: 12px; background: var(--primary); color: var(--primary-ink); font-size: 14px; font-weight: 650; transition: background-color .16s ease, transform .16s ease; }
+  .button-primary { min-height: 44px; border-radius: 12px; background: var(--primary); color: var(--primary-ink); font-size: 14px; font-weight: 650; transition: background-color var(--motion-fast) ease, transform var(--motion-fast) ease; }
   .button-primary:hover { background: var(--primary-hover); }
   .icon-button { display: inline-flex; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; border-radius: 12px; }
   .scrollbar-none { scrollbar-width: none; }
@@ -97,10 +100,32 @@
   :root[data-theme="dark"] .mobile-nav-link { color: color-mix(in srgb, var(--ink) 88%, transparent); }
   :root[data-theme="dark"] .mobile-nav-link.is-active .mobile-nav-icon { background: color-mix(in srgb, #9dbaff 18%, var(--surface)); }
   .mobile-fab:active { transform: scale(.95); }
-  .transaction-segmented { display: inline-grid; grid-template-columns: repeat(3, auto); align-items: center; gap: 2px; width: fit-content; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--soft-blue); }
-  .transaction-segmented button { min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; transition: background-color .15s ease, color .15s ease, box-shadow .15s ease; }
-  .transaction-segmented button.is-active { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(17,30,54,.15); }
-  @media (hover: hover) and (pointer: fine) { .transaction-segmented button:not(.is-active):hover { color: var(--ink); } }
+  .segmented-control { position: relative; display: inline-flex; min-height: 42px; max-width: 100%; align-items: center; gap: 2px; overflow: hidden; padding: 4px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; background: linear-gradient(180deg, rgba(255,255,255,.18), transparent), color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: 0 4px 14px rgba(17,30,54,.1), inset 0 1px 0 rgba(255,255,255,.48); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); }
+  .segmented-control-indicator { position: absolute; top: 4px; bottom: 4px; left: 4px; z-index: 0; border-radius: 999px; background: color-mix(in srgb, #2866d7 12%, var(--surface)); opacity: 0; transition: transform var(--motion-medium) cubic-bezier(.2,.8,.2,1), width var(--motion-medium) cubic-bezier(.2,.8,.2,1), opacity var(--motion-fast) ease; }
+  .segmented-control-indicator.is-ready { opacity: 1; }
+  .segmented-control-option { position: relative; z-index: 1; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; transition: color var(--motion-fast) ease, transform var(--motion-fast) ease; }
+  .segmented-control-option:active { transform: scale(.97); }
+  .segmented-control-option.is-active { color: #2866d7; }
+  :root[data-theme="dark"] .segmented-control-option.is-active { color: #9dbaff; }
+  :root[data-theme="dark"] .segmented-control { border-color: rgba(255,255,255,.12); background: linear-gradient(180deg, rgba(255,255,255,.06), transparent), color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: 0 4px 14px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.07); }
+  :root[data-theme="dark"] .segmented-control-indicator { background: color-mix(in srgb, #9dbaff 16%, var(--surface)); }
+  @media (hover: hover) and (pointer: fine) { .segmented-control-option:not(.is-active):hover { color: var(--ink); } }
+  .skeleton-shimmer { position: relative; overflow: hidden; background: var(--soft-blue); }
+  .skeleton-shimmer::after { position: absolute; inset: 0; content: ""; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 55%, transparent), transparent); animation: shimmer 1.5s ease-in-out infinite; }
+  .motion-enter { animation: content-enter var(--motion-medium) ease-out both; }
+  .motion-stagger > * { animation: content-enter var(--motion-medium) ease-out both; }
+  .motion-stagger > *:nth-child(2) { animation-delay: 35ms; }
+  .motion-stagger > *:nth-child(3) { animation-delay: 70ms; }
+  .motion-stagger > *:nth-child(4) { animation-delay: 105ms; }
+  .motion-stagger > *:nth-child(5) { animation-delay: 140ms; }
+  .motion-stagger > *:nth-child(6) { animation-delay: 175ms; }
+  .motion-list > * { animation: content-enter var(--motion-fast) ease-out both; }
+  .toast-enter { animation: toast-enter var(--motion-medium) cubic-bezier(.2,.8,.2,1) both; }
+  .budget-fill { animation: budget-fill 420ms cubic-bezier(.2,.8,.2,1) both; transform-origin: left; }
+  .popover-enter { animation: popover-enter var(--motion-fast) cubic-bezier(.2,.8,.2,1) both; }
+  .app-shell main { animation: content-enter 180ms ease-out both; }
+  .mobile-nav-icon, .icon-button, .button-primary, .control, .native-select { transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
+  button:active:not(:disabled) { transform: scale(.98); }
   .popover-mobile-sheet { position: fixed; z-index: 60; inset-inline: 8px; bottom: calc(env(safe-area-inset-bottom) + 90px); max-height: min(56dvh, 440px); width: auto; overflow-y: auto; border: 1px solid var(--line); border-radius: 26px; background: var(--surface); padding: 16px; color: var(--ink); box-shadow: 0 20px 70px rgba(10,20,40,.32); }
 }
 
@@ -108,6 +133,11 @@
 @keyframes sink { from { transform: translateY(0); opacity: 1; } to { transform: translateY(100%); opacity: .7; } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes content-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toast-enter { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@keyframes shimmer { to { transform: translateX(100%); } }
+@keyframes budget-fill { from { transform: scaleX(.82); opacity: .75; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes popover-enter { from { opacity: 0; transform: scale(.97) translateY(-2px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @media (min-width: 768px) { .dialog-sheet { margin: auto; width: min(100% - 40px, 520px); border-bottom: 1px solid var(--line); border-radius: 24px; } .dialog-sheet[open].is-closing { animation-name: sink-desktop; } }
 @keyframes sink-desktop { from { transform: translateY(0); opacity: 1; } to { transform: translateY(24px); opacity: .7; } }
 @media (hover: hover) and (pointer: fine) {
@@ -121,4 +151,4 @@
     .mobile-nav-float, .mobile-fab { background: color-mix(in srgb, var(--surface) 96%, transparent); }
   }
 }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-delay: 0ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }

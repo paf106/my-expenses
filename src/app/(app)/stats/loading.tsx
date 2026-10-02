@@ -1,3 +1,3 @@
-import { PageLoading } from "@/components/ui/page-loading";
+import { StatsSkeleton } from "@/components/ui/page-skeletons";
 
-export default function Loading() { return <PageLoading />; }
+export default function Loading() { return <StatsSkeleton />; }
