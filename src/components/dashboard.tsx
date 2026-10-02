@@ -1,17 +1,13 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import Link from "next/link";
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
 import { useMemo } from "react";
+import Link from "next/link";
 import type { Category, Transaction } from "@/lib/supabase/types";
 import { currentMonth, dateLabel, euro } from "@/lib/utils";
 import { CategoryIcon } from "@/components/ui/category-icon";
-
-const CategoryChart = dynamic(() => import("@/components/charts").then((module) => module.CategoryChart), {
-  ssr: false,
-  loading: () => <div className="mx-auto aspect-square w-full max-w-[210px] animate-pulse rounded-full bg-[var(--soft-blue)]" />,
-});
+import { CategoryBreakdownCard } from "@/components/dashboard/category-breakdown-card";
+import { BudgetCard } from "@/components/dashboard/budget-card";
 
 export function Dashboard({ month, transactions, categories }: { month: string; transactions: Transaction[]; categories: Category[] }) {
   const { income, expenses } = useMemo(() => transactions.reduce((totals, transaction) => {
@@ -41,7 +37,6 @@ export function Dashboard({ month, transactions, categories }: { month: string; 
   const spentPercent = income > 0 ? Math.min(expenses / income * 100, 100) : expenses > 0 ? 100 : 0;
   const savingsPercent = income > 0 ? Math.max(0, 100 - spentPercent) : 0;
   const recent = transactions.slice(0, 4);
-  const budgets = categories.filter((category) => category.type === "expense" && category.monthly_budget !== null).slice(0, 4);
   return <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2 xl:gap-6">
     <section className="card flex h-full flex-col overflow-hidden p-5 md:p-6">
       <div className="mb-6 flex items-start justify-between gap-3">
@@ -64,23 +59,9 @@ export function Dashboard({ month, transactions, categories }: { month: string; 
       </div>
     </section>
 
-    <section className="card flex h-full min-w-0 flex-col p-5 md:p-6">
-      <div className="mb-3 flex items-start justify-between gap-3"><div><h2 className="m-0 text-base font-semibold">A dónde va</h2><p className="muted mb-0 mt-1 text-sm">Gastos por categoría</p></div><Link href="/stats" className="flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-semibold text-[var(--ink)] no-underline hover:bg-[var(--soft-blue)]">Ver más <ArrowRight size={15} /></Link></div>
-      <div className="grid flex-1 grid-cols-[minmax(120px,1fr)_minmax(100px,.9fr)] items-center gap-3 sm:gap-5">
-         <div className="relative mx-auto w-full max-w-[210px]"><CategoryChart data={breakdown.map(({ name, total, color }) => ({ name, value: total, color }))} height={210} />{breakdown.length > 0 && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"><span className="muted text-[11px]">Total</span><strong className="amount text-sm">{euro(categorySum)}</strong></div>}</div>
-        <ul className="m-0 flex min-w-0 list-none flex-col gap-3 p-0">{breakdown.length ? breakdown.slice(0, 4).map((item) => <li key={item.id} className="flex min-w-0 items-center gap-2"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.color }} /><span className="min-w-0 flex-1 truncate text-xs sm:text-sm">{item.name}</span><strong className="amount shrink-0 text-xs font-medium">{euro(item.total)}</strong></li>) : <li className="muted text-sm">Apunta tu primer gasto para ver el desglose.</li>}</ul>
-      </div>
-    </section>
+    <CategoryBreakdownCard data={breakdown}/>
 
-    <section className="card flex h-full flex-col p-5 md:p-6">
-      <div className="mb-5 flex items-start justify-between gap-3"><div><h2 className="m-0 text-base font-semibold">Tus límites</h2><p className="muted mb-0 mt-1 text-sm">Presupuestos del mes</p></div><Link href="/settings/categories" className="flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-[var(--ink)] no-underline hover:bg-[var(--soft-blue)]">Editar</Link></div>
-      {budgets.length ? <div className="space-y-4">{budgets.map((category) => {
-         const spent = categorySpent.get(category.id) || 0;
-        const limit = Number(category.monthly_budget || 0);
-        const percentage = limit > 0 ? Math.min(spent / limit * 100, 100) : 0;
-        return <div key={category.id}><div className="mb-2 flex items-center justify-between gap-2"><span className="flex min-w-0 items-center gap-2 text-sm"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={{ color: category.color, backgroundColor: `color-mix(in srgb, ${category.color} 14%, transparent)` }}><CategoryIcon name={category.icon} size={17} /></span><span className="truncate">{category.name}</span></span><span className="amount shrink-0 text-xs font-medium">{euro(spent)} <span className="muted">/ {euro(limit)}</span></span></div><div className="h-2 overflow-hidden rounded-full bg-[var(--soft-blue)]"><div className="h-full rounded-full" style={{ width: `${percentage}%`, backgroundColor: spent > limit ? "var(--expense)" : category.color }} /></div></div>;
-      })}</div> : <p className="muted m-0 text-sm">Añade límites a tus categorías para seguir tu presupuesto.</p>}
-    </section>
+    <BudgetCard categories={categories} spentByCategory={categorySpent}/>
 
     <section className="card flex h-full flex-col p-5 md:p-6">
       <div className="mb-3 flex items-start justify-between gap-3"><div><h2 className="m-0 text-base font-semibold">Últimos movimientos</h2><p className="muted mb-0 mt-1 text-sm">Lo más reciente de tu mes</p></div><Link href="/transactions" className="flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-semibold text-[var(--ink)] no-underline hover:bg-[var(--soft-blue)]">Ver todos <ArrowRight size={15} /></Link></div>

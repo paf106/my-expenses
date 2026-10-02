@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import type { Category, TransactionType } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
-import { CategoryIcon } from "@/components/ui/category-icon";
-import { CategoryIconPicker } from "@/components/ui/category-icon-picker";
-import { ChevronRightIcon } from "@/components/ui/chevron-right-icon";
 import { useSheetDismiss } from "@/components/ui/use-sheet-dismiss";
 import { Button, Card, CardHeader } from "@/components/ui/primitives";
 import { PageHeading } from "@/components/ui/page-heading";
+import { CategoryDesktopRow } from "@/components/categories/category-desktop-row";
+import { CategoryMobileCard } from "@/components/categories/category-mobile-card";
+import { CategoryIconPicker } from "@/components/ui/category-icon-picker";
 
 const colors = ["#7187c9", "#df8559", "#8171c8", "#cb7ca2", "#5ca79a", "#bd8f54", "#8993a4", "#1f9d74"];
 
@@ -34,6 +34,16 @@ export function CategoriesView({ categories }: { categories: Category[] }) {
     else { setNotice("Cambios guardados"); window.setTimeout(() => setNotice(""), 2200); router.refresh(); }
   });
   const update = (id: string, field: "name" | "monthly_budget" | "color" | "icon", value: string) => setItems((current) => current.map((item) => item.id === id ? { ...item, [field]: field === "monthly_budget" ? (value === "" ? null : Number(value)) : value } : item));
+  const setColor = (item: Category, color: string) => startTransition(async () => {
+    update(item.id, "color", color);
+    const { error: saveError } = await createClient().from("categories").update({ color }).eq("id", item.id);
+    if (saveError) setError(`No se ha podido guardar el color de «${item.name}».`);
+  });
+  const setIcon = (item: Category, icon: string) => startTransition(async () => {
+    update(item.id, "icon", icon);
+    const { error: saveError } = await createClient().from("categories").update({ icon }).eq("id", item.id);
+    if (saveError) setError(`No se ha podido guardar el icono de «${item.name}».`);
+  });
   const add = (type: TransactionType) => startTransition(async () => {
     setError("");
     const supabase = createClient();
@@ -103,22 +113,11 @@ export function CategoriesView({ categories }: { categories: Category[] }) {
     <PageHeading description="Organiza tus categorías y define un límite mensual para cada gasto." backHref="/settings" />
     {(["expense", "income"] as const).map((type) => <Card key={type} className="hidden p-4 md:block md:p-6">
       <CardHeader title={type === "expense" ? "Gastos" : "Ingresos"} action={<Button type="button" variant="quiet" className="px-3" onClick={() => add(type)}><Plus size={16}/>Añadir</Button>} />
-      <div className="space-y-3">{items.filter((item) => item.type === type).map((item) => <article key={item.id} className="grid grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-2 rounded-2xl border border-[var(--line)] p-3 lg:grid-cols-[40px_minmax(120px,1fr)_minmax(120px,160px)_auto_128px_44px] lg:gap-3 lg:border-0 lg:p-0">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ color: item.color, backgroundColor: `color-mix(in srgb, ${item.color} 14%, transparent)` }}><CategoryIcon name={item.icon} size={18}/></span>
-        <label className="min-w-0"><span className="sr-only">Nombre de categoría</span><input aria-label="Nombre de categoría" value={item.name} onChange={(event) => update(item.id, "name", event.target.value)} onBlur={(event) => persist(item.id, "name", event.target.value)} maxLength={48} className="control !min-h-10 min-w-0 px-3 text-sm" /></label>
-        <label className="col-start-2 min-w-0 lg:col-start-auto"><span className="sr-only">Presupuesto mensual en euros</span>{type === "expense" ? <input aria-label="Presupuesto mensual en euros" type="number" min="0" step="0.01" value={item.monthly_budget ?? ""} onChange={(event) => update(item.id, "monthly_budget", event.target.value)} onBlur={(event) => persist(item.id, "monthly_budget", event.target.value)} placeholder="Límite €" className="control !min-h-10 px-2 text-xs" /> : <span className="muted hidden text-xs lg:inline">Ingreso</span>}</label>
-        <div className="col-start-2 flex items-center gap-0.5 lg:col-start-auto" aria-label="Color de categoría">{colors.slice(0, 6).map((color) => <button key={color} type="button" aria-label={`Usar color ${color}`} aria-pressed={item.color === color} onClick={async () => { update(item.id, "color", color); const { error: saveError } = await createClient().from("categories").update({ color }).eq("id", item.id); if (saveError) setError(`No se ha podido guardar el color de «${item.name}».`); else router.refresh(); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-[var(--soft-blue)] lg:h-8 lg:w-8"><span className={`h-6 w-6 rounded-full border-2 ${item.color === color ? "border-[var(--ink)] p-[3px]" : "border-transparent"}`} style={{ backgroundColor: color, backgroundClip: item.color === color ? "content-box" : undefined }} /></button>)}</div>
-        <div className="col-start-2 min-w-0 lg:col-start-auto"><CategoryIconPicker value={item.icon} onChange={async (icon) => { update(item.id, "icon", icon); const { error: saveError } = await createClient().from("categories").update({ icon }).eq("id", item.id); if (saveError) setError(`No se ha podido guardar el icono de «${item.name}».`); else router.refresh(); }} className="w-full" /></div>
-        <Button type="button" variant="danger" onClick={() => remove(item)} aria-label={`Eliminar categoría ${item.name}`} className="col-start-3 row-start-1 !min-h-10 !min-w-10 !px-2 lg:col-start-auto lg:row-start-auto"><Trash2 size={16}/></Button>
-      </article>)}</div>
+      <div className="space-y-3">{items.filter((item) => item.type === type).map((item) => <CategoryDesktopRow key={item.id} item={item} type={type} colors={colors} onUpdate={update} onPersist={persist} onColor={setColor} onIcon={setIcon} onRemove={remove}/>)}</div>
     </Card>)}
     {(["expense", "income"] as const).map((type) => <section key={`mobile-${type}`} className="space-y-2 md:hidden">
       <div className="flex items-center justify-between px-1"><h2 className="m-0 text-base font-semibold">{type === "expense" ? "Gastos" : "Ingresos"}</h2><Button type="button" variant="quiet" className="px-3" onClick={() => startAdd(type)}><Plus size={16}/>Añadir</Button></div>
-      {items.filter((item) => item.type === type).map((item) => <button key={item.id} type="button" onClick={() => startEdit(item)} className="card flex min-h-[68px] w-full items-center gap-3 p-3 text-left">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: item.color, backgroundColor: `color-mix(in srgb, ${item.color} 14%, transparent)` }}><CategoryIcon name={item.icon} size={19}/></span>
-        <span className="min-w-0 flex-1"><strong className="block truncate text-sm font-semibold">{item.name}</strong><small className="muted mt-1 block truncate text-xs">{type === "expense" ? item.monthly_budget === null ? "Sin límite" : `Límite ${new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", useGrouping: "always" }).format(item.monthly_budget)}` : "Ingreso"}</small></span>
-        <ChevronRightIcon className="shrink-0 text-[var(--muted)]" />
-      </button>)}
+      {items.filter((item) => item.type === type).map((item) => <CategoryMobileCard key={item.id} item={item} type={type} onSelect={startEdit}/>)}
     </section>)}
     {(editing || newType) && draft && <div className={`category-editor-backdrop fixed inset-0 z-[70] flex items-end bg-[#101a2c88] backdrop-blur-[2px] md:hidden${editorClosing ? " is-closing" : ""}`} onMouseDown={(event) => { if (event.target === event.currentTarget) closeEditor(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="category-editor-title" className={`category-editor-sheet max-h-[86dvh] w-full overflow-y-auto rounded-t-[26px] border border-[var(--line)] border-b-0 bg-[var(--surface)] p-5 pb-[max(env(safe-area-inset-bottom),24px)] text-[var(--ink)] shadow-2xl${editorClosing ? " is-closing" : ""}`}>

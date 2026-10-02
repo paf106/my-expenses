@@ -2,12 +2,12 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { monthBounds } from "@/lib/utils";
 
-export const transactionColumns = "id,user_id,category_id,recurring_id,type,amount,description,date";
+export const transactionColumns = "id,category_id,recurring_id,type,amount,description,date";
 
 export const getMonthTransactions = cache(async (month: string) => {
   const { start, end } = monthBounds(month);
   const supabase = await createClient();
-  const { data, error } = await supabase.from("transactions").select(transactionColumns).gte("date", start).lte("date", end).order("date", { ascending: false }).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("transactions").select(`${transactionColumns},created_at`).gte("date", start).lte("date", end).order("date", { ascending: false }).order("created_at", { ascending: false });
   if (error) throw new Error("No se pudieron cargar los movimientos.", { cause: error });
   return data;
 });

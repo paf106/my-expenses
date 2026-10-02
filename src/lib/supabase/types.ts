@@ -15,7 +15,7 @@ export type Category = {
 
 export type Transaction = {
   id: string;
-  user_id: string;
+  user_id?: string;
   category_id: string | null;
   recurring_id: string | null;
   type: TransactionType;
