@@ -1,12 +1,12 @@
 "use client";
 
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import type { Category, Transaction } from "@/lib/supabase/types";
+import type { Category, MonthTransaction } from "@/lib/supabase/types";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { Popover } from "@/components/ui/popover";
 import { euro } from "@/lib/utils";
 
-export function TransactionRow({ transaction, category, pending, onEdit, onRemove }: { transaction: Transaction; category: Category | undefined; pending: boolean; onEdit: (transaction: Transaction) => void; onRemove: (transaction: Transaction) => void }) {
+export function TransactionRow({ transaction, category, pending, onEdit, onRemove }: { transaction: MonthTransaction; category: Category | undefined; pending: boolean; onEdit: (transaction: MonthTransaction) => void; onRemove: (transaction: MonthTransaction) => void }) {
   const income = transaction.type === "income";
   const title = transaction.description || category?.name || "Movimiento";
   return <li className="group flex items-center gap-3 border-b border-[var(--line)] px-4 py-3 last:border-0 sm:gap-4 sm:px-4">

@@ -4,12 +4,12 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Category, TransactionType } from "@/lib/supabase/types";
 import { X } from "lucide-react";
-import type { Transaction } from "@/lib/supabase/types";
+import type { MonthTransaction } from "@/lib/supabase/types";
 import { localToday } from "@/lib/utils";
 import { Button, Select } from "@/components/ui/primitives";
 import { useSheetDismiss } from "@/components/ui/use-sheet-dismiss";
 
-export function TransactionDialog({ open, transaction, categories, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: Transaction | null; categories: Category[]; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
+export function TransactionDialog({ open, transaction, categories, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: MonthTransaction | null; categories: Category[]; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [type, setType] = useState<TransactionType>(transaction?.type || defaultType);
   const [amount, setAmount] = useState(transaction ? String(transaction.amount).replace(".", ",") : "");

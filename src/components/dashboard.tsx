@@ -3,13 +3,13 @@
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
 import { useMemo } from "react";
 import Link from "next/link";
-import type { Category, Transaction } from "@/lib/supabase/types";
+import type { Category, MonthTransaction } from "@/lib/supabase/types";
 import { currentMonth, dateLabel, euro } from "@/lib/utils";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { CategoryBreakdownCard } from "@/components/dashboard/category-breakdown-card";
 import { BudgetCard } from "@/components/dashboard/budget-card";
 
-export function Dashboard({ month, transactions, categories }: { month: string; transactions: Transaction[]; categories: Category[] }) {
+export function Dashboard({ month, transactions, categories }: { month: string; transactions: MonthTransaction[]; categories: Category[] }) {
   const { income, expenses } = useMemo(() => transactions.reduce((totals, transaction) => {
     totals[transaction.type === "income" ? "income" : "expenses"] += Number(transaction.amount);
     return totals;

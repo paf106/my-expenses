@@ -3,16 +3,16 @@
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
-import type { Category, Transaction } from "@/lib/supabase/types";
+import type { Category, MonthTransaction } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import { filterTransactions } from "@/lib/utils";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import { TransactionDayGroup } from "@/components/transactions/transaction-day-group";
 import { useTransactionDialog } from "@/components/transaction-dialog-context";
 
-export function TransactionsView({ month, transactions, categories }: { month: string; transactions: Transaction[]; categories: Category[] }) {
+export function TransactionsView({ month, transactions, categories }: { month: string; transactions: MonthTransaction[]; categories: Category[] }) {
   const [pending, startTransition] = useTransition();
-  const [removed, setRemoved] = useState<Transaction | null>(null);
+  const [removed, setRemoved] = useState<MonthTransaction | null>(null);
   const pathname = usePathname();
   const params = useSearchParams();
   const router = useRouter();
@@ -25,7 +25,7 @@ export function TransactionsView({ month, transactions, categories }: { month: s
   const { openEdit } = useTransactionDialog();
   const groups = useMemo(() => {
     const filtered = filterTransactions(transactions, categories, { type: filter, category, query: deferredQuery });
-    return filtered.reduce<Record<string, Transaction[]>>((acc, transaction) => { (acc[transaction.date] ||= []).push(transaction); return acc; }, {});
+    return filtered.reduce<Record<string, MonthTransaction[]>>((acc, transaction) => { (acc[transaction.date] ||= []).push(transaction); return acc; }, {});
   }, [transactions, categories, filter, category, deferredQuery]);
 
   const syncParams = (type: string, q: string, selectedCategory: string) => {
@@ -43,7 +43,7 @@ export function TransactionsView({ month, transactions, categories }: { month: s
   };
   const handleQuery = (value: string) => syncParams(filter, value, category);
   const handleCategory = (value: string) => syncParams(filter, query, value);
-  const remove = (transaction: Transaction) => startTransition(async () => {
+  const remove = (transaction: MonthTransaction) => startTransition(async () => {
     const { error } = await createClient().from("transactions").delete().eq("id", transaction.id);
     if (!error) { setRemoved(transaction); router.refresh(); }
   });

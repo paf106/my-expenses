@@ -9,7 +9,7 @@ import { currentMonth, pageGreeting } from "@/lib/utils";
 import { TransactionDialog } from "@/components/transaction-dialog";
 import { Button } from "@/components/ui/primitives";
 import { TransactionDialogContext } from "@/components/transaction-dialog-context";
-import type { Transaction, TransactionType } from "@/lib/supabase/types";
+import type { MonthTransaction, TransactionType } from "@/lib/supabase/types";
 import { Sidebar } from "@/components/app-shell/sidebar";
 import { MobileNavigation } from "@/components/app-shell/mobile-navigation";
 import { MonthSwitcher } from "@/components/app-shell/month-switcher";
@@ -25,7 +25,7 @@ export function AppShell({ children, categories }: { children: React.ReactNode; 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<TransactionType>("expense");
   const [dialogSession, setDialogSession] = useState(0);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<MonthTransaction | null>(null);
   const [toast, setToast] = useState("");
   const [monthPending, startMonthTransition] = useTransition();
   const showMonth = monthRoutes.includes(pathname);
@@ -43,7 +43,7 @@ export function AppShell({ children, categories }: { children: React.ReactNode; 
     setDialogSession((session) => session + 1);
     setDialogOpen(true);
   }, [defaultTransactionType]);
-  const openEdit = useCallback((transaction: Transaction) => {
+  const openEdit = useCallback((transaction: MonthTransaction) => {
     setEditingTransaction(transaction);
     setQuickAddType(transaction.type);
     setDialogSession((session) => session + 1);

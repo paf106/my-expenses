@@ -15,16 +15,18 @@ export type Category = {
 
 export type Transaction = {
   id: string;
-  user_id?: string;
+  user_id: string;
   category_id: string | null;
   recurring_id: string | null;
   type: TransactionType;
   amount: number;
   description: string;
   date: string;
-  created_at?: string;
+  created_at: string;
   category?: Pick<Category, "id" | "name" | "icon" | "color" | "type"> | null;
 };
+
+export type MonthTransaction = Pick<Transaction, "id" | "category_id" | "recurring_id" | "type" | "amount" | "description" | "date">;
 
 export type RecurringTransaction = {
   id: string;

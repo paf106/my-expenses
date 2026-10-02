@@ -23,8 +23,8 @@ describe("finance utilities", () => {
 
   it("filters by type, category and accent-insensitive description/category text", () => {
     const transactions = [
-      { id: "1", type: "expense", category_id: "food", description: "Compra semanal" },
-      { id: "2", type: "income", category_id: "salary", description: "Nómina" },
+      { id: "1", type: "expense", category_id: "food", description: "Compra semanal", recurring_id: null, amount: 20, date: "2026-09-01" },
+      { id: "2", type: "income", category_id: "salary", description: "Nómina", recurring_id: null, amount: 1000, date: "2026-09-02" },
     ];
     const categories = [{ id: "food", name: "Alimentación" }, { id: "salary", name: "Nómina" }];
     expect(filterTransactions(transactions, categories, { type: "expense", category: "all", query: "alimentacion" }).map(({ id }) => id)).toEqual(["1"]);
