@@ -67,14 +67,14 @@
   .nav-link:hover, .nav-link[aria-current="page"] { color: var(--ink); background: var(--soft-blue); }
   .dialog-sheet { margin: auto 0 0; width: 100%; max-width: none; max-height: min(90dvh, 720px); border: 1px solid var(--line); border-bottom: 0; border-radius: 24px 24px 0 0; background: var(--surface); color: var(--ink); padding: 0; box-shadow: 0 -20px 70px #0b163522; }
   .dialog-sheet::backdrop { background: #101a2c88; backdrop-filter: blur(3px); }
-  .dialog-sheet[open] { animation: rise var(--motion-medium) ease-out both; }
-  .dialog-sheet[open]::backdrop { animation: fade-in var(--motion-medium) ease-out both; }
+  .dialog-sheet[open] { animation: rise var(--motion-medium) ease-out backwards; }
+  .dialog-sheet[open]::backdrop { animation: fade-in var(--motion-medium) ease-out backwards; }
   .dialog-sheet[open].is-closing { animation: sink .24s ease-in forwards; }
   .dialog-sheet[open].is-closing::backdrop { animation: fade-out .24s ease-in forwards; }
   .dialog-sheet.is-closing, .category-editor-backdrop.is-closing { pointer-events: none; }
-  .category-editor-backdrop { animation: fade-in var(--motion-medium) ease-out both; }
+  .category-editor-backdrop { animation: fade-in var(--motion-medium) ease-out backwards; }
   .category-editor-backdrop.is-closing { animation: fade-out .24s ease-in forwards; }
-  .category-editor-sheet { animation: rise var(--motion-medium) ease-out both; }
+  .category-editor-sheet { animation: rise var(--motion-medium) ease-out backwards; }
   .category-editor-sheet.is-closing { animation: sink .24s ease-in forwards; }
   .field-label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 13px; font-weight: 550; }
   .control { min-height: 44px; width: 100%; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); padding: 0 12px; font-size: 14px; }
@@ -101,7 +101,7 @@
   :root[data-theme="dark"] .mobile-nav-link.is-active .mobile-nav-icon { background: color-mix(in srgb, #9dbaff 18%, var(--surface)); }
   .mobile-fab:active { transform: scale(.95); }
   .segmented-control { position: relative; display: inline-flex; min-height: 42px; max-width: 100%; align-items: center; gap: 2px; overflow: hidden; padding: 4px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; background: linear-gradient(180deg, rgba(255,255,255,.18), transparent), color-mix(in srgb, var(--surface) 72%, transparent); box-shadow: 0 4px 14px rgba(17,30,54,.1), inset 0 1px 0 rgba(255,255,255,.48); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); }
-  .segmented-control-indicator { position: absolute; top: 4px; bottom: 4px; left: 4px; z-index: 0; border-radius: 999px; background: color-mix(in srgb, #2866d7 12%, var(--surface)); opacity: 0; transition: transform var(--motion-medium) cubic-bezier(.2,.8,.2,1), width var(--motion-medium) cubic-bezier(.2,.8,.2,1), opacity var(--motion-fast) ease; }
+  .segmented-control-indicator { position: absolute; top: 0; left: 0; z-index: 0; border-radius: 999px; background: color-mix(in srgb, #2866d7 12%, var(--surface)); opacity: 0; transition: transform var(--motion-medium) cubic-bezier(.2,.8,.2,1), width var(--motion-medium) cubic-bezier(.2,.8,.2,1), height var(--motion-medium) cubic-bezier(.2,.8,.2,1), opacity var(--motion-fast) ease; }
   .segmented-control-indicator.is-ready { opacity: 1; }
   .segmented-control-option { position: relative; z-index: 1; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; transition: color var(--motion-fast) ease, transform var(--motion-fast) ease; }
   .segmented-control-option:active { transform: scale(.97); }
@@ -112,18 +112,18 @@
   @media (hover: hover) and (pointer: fine) { .segmented-control-option:not(.is-active):hover { color: var(--ink); } }
   .skeleton-shimmer { position: relative; overflow: hidden; background: var(--soft-blue); }
   .skeleton-shimmer::after { position: absolute; inset: 0; content: ""; transform: translateX(-100%); background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 55%, transparent), transparent); animation: shimmer 1.5s ease-in-out infinite; }
-  .motion-enter { animation: content-enter var(--motion-medium) ease-out both; }
-  .motion-stagger > * { animation: content-enter var(--motion-medium) ease-out both; }
+  .motion-enter { animation: content-enter var(--motion-medium) ease-out backwards; }
+  .motion-stagger > * { animation: content-enter var(--motion-medium) ease-out backwards; }
   .motion-stagger > *:nth-child(2) { animation-delay: 35ms; }
   .motion-stagger > *:nth-child(3) { animation-delay: 70ms; }
   .motion-stagger > *:nth-child(4) { animation-delay: 105ms; }
   .motion-stagger > *:nth-child(5) { animation-delay: 140ms; }
   .motion-stagger > *:nth-child(6) { animation-delay: 175ms; }
-  .motion-list > * { animation: content-enter var(--motion-fast) ease-out both; }
-  .toast-enter { animation: toast-enter var(--motion-medium) cubic-bezier(.2,.8,.2,1) both; }
-  .budget-fill { animation: budget-fill 420ms cubic-bezier(.2,.8,.2,1) both; transform-origin: left; }
-  .popover-enter { animation: popover-enter var(--motion-fast) cubic-bezier(.2,.8,.2,1) both; }
-  .app-shell main { animation: content-enter 180ms ease-out both; }
+  .motion-list > * { animation: content-enter var(--motion-fast) ease-out backwards; }
+  .toast-enter { animation: toast-enter var(--motion-medium) cubic-bezier(.2,.8,.2,1) backwards; }
+  .budget-fill { animation: budget-fill 420ms cubic-bezier(.2,.8,.2,1) backwards; transform-origin: left; }
+  .popover-enter { animation: popover-enter var(--motion-fast) cubic-bezier(.2,.8,.2,1) backwards; }
+  .app-shell main { animation: content-enter 180ms ease-out backwards; }
   .mobile-nav-icon, .icon-button, .button-primary, .control, .native-select { transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
   button:active:not(:disabled) { transform: scale(.98); }
   .popover-mobile-sheet { position: fixed; z-index: 60; inset-inline: 8px; bottom: calc(env(safe-area-inset-bottom) + 90px); max-height: min(56dvh, 440px); width: auto; overflow-y: auto; border: 1px solid var(--line); border-radius: 26px; background: var(--surface); padding: 16px; color: var(--ink); box-shadow: 0 20px 70px rgba(10,20,40,.32); }
