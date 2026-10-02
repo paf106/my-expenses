@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentMonth, euro, filterTransactions, monthBounds, normalizeSearch, pageGreeting } from "@/lib/utils";
+import { currentMonth, euro, filterTransactions, formatDateEs, monthBounds, normalizeSearch, pageGreeting, parseDateEs } from "@/lib/utils";
 
 describe("finance utilities", () => {
   it("normalizes accented, case-insensitive searches", () => {
@@ -8,6 +8,12 @@ describe("finance utilities", () => {
 
   it("calculates month boundaries including leap years", () => {
     expect(monthBounds("2024-02")).toEqual({ start: "2024-02-01", end: "2024-02-29" });
+  });
+
+  it("formats and validates Spanish day/month/year dates", () => {
+    expect(formatDateEs("2026-02-10")).toBe("10/02/2026");
+    expect(parseDateEs("10/02/2026")).toBe("2026-02-10");
+    expect(parseDateEs("31/02/2026")).toBeNull();
   });
 
   it("formats euro values using Spanish locale", () => {

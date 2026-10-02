@@ -1,4 +1,4 @@
-const CACHE_NAME = "mis-gastos-static-v1";
+const CACHE_NAME = "mis-gastos-static-v2";
 const OFFLINE_PAGE = "/offline.html";
 
 self.addEventListener("install", (event) => {
@@ -19,12 +19,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
   if (["image", "font", "style"].includes(request.destination)) {
-    event.respondWith(caches.match(request).then((cached) => {
-      const fresh = fetch(request).then((response) => {
-        if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
-        return response;
-      });
-      return cached || fresh;
-    }));
+    event.respondWith(fetch(request).then((response) => {
+      if (response.ok) {
+        const cachedResponse = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, cachedResponse)).catch(() => undefined);
+      }
+      return response;
+    }).catch(async () => (await caches.match(request)) || Response.error()));
   }
 });

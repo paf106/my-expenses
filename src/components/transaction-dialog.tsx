@@ -8,6 +8,7 @@ import type { MonthTransaction } from "@/lib/supabase/types";
 import { localToday } from "@/lib/utils";
 import { Button, Select } from "@/components/ui/primitives";
 import { useSheetDismiss } from "@/components/ui/use-sheet-dismiss";
+import { DateField } from "@/components/ui/date-field";
 
 export function TransactionDialog({ open, transaction, categories, defaultType = "expense", onClose, onSaved }: { open: boolean; transaction?: MonthTransaction | null; categories: Category[]; defaultType?: TransactionType; onClose: () => void; onSaved: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -54,7 +55,7 @@ export function TransactionDialog({ open, transaction, categories, defaultType =
       <label className="field-label" htmlFor="movement-description">Descripción</label>
       <input id="movement-description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={160} placeholder="¿En qué ha sido? (opcional)" className="control mb-4 placeholder:text-[var(--muted)]" />
       <label className="field-label" htmlFor="movement-date">Fecha</label>
-      <input id="movement-date" type="date" required value={date} onChange={(event) => setDate(event.target.value)} className="control mb-4" />
+       <DateField id="movement-date" required value={date} onChange={setDate} className="mb-4" />
       {error && <p className="mb-3 text-sm text-[var(--expense)]" role="alert">{error}</p>}
       <Button disabled={pending} type="submit" className="w-full">{pending ? "Guardando…" : transaction ? "Guardar cambios" : "Guardar movimiento"}</Button>
     </form>

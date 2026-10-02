@@ -74,7 +74,7 @@ export function AppShell({ children, categories }: { children: React.ReactNode; 
           <div className="min-w-0 flex-1"><h1 className="m-0 truncate text-[19px] font-semibold tracking-tight md:text-[24px]">{pageTitle}</h1></div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {showMonth && <MonthSwitcher month={month} isCurrentMonth={isCurrentMonth} pending={monthPending} onMove={moveMonth}/>}
-            {showAdd && <Button onClick={() => openQuickAdd()} className="hidden min-h-11 items-center gap-2 px-4 md:inline-flex"><Plus size={17} /> Añadir</Button>}
+            {showAdd && <Button onClick={() => openQuickAdd()} className="max-md:hidden min-h-11 items-center gap-2 px-4"><Plus size={17} /> Añadir</Button>}
           </div>
         </div>
       </header>
