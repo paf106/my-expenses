@@ -17,7 +17,7 @@ begin
   for r in
     select *
     from public.recurring_transactions
-    where active and next_run <= madrid_today and (end_date is null or next_run <= end_date)
+    where active and next_run <= madrid_today
     for update skip locked
   loop
     catch_up := 0;
@@ -51,7 +51,3 @@ end;
 $$;
 
 revoke all on function public.run_recurring() from public, anon, authenticated;
-
-select cron.unschedule(jobid) from cron.job where jobname = 'my-expenses-recurring-daily';
-
-select cron.schedule('my-expenses-recurring-daily', '5 2 * * *', $$select public.run_recurring();$$);

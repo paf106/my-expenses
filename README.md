@@ -21,6 +21,22 @@ La migración crea RLS por usuario, categorías iniciales al crear manualmente e
 - `npm run lint` — ESLint.
 - `npm run typecheck` — TypeScript.
 - `npm run build` — build de producción.
+- `npm test` — tests unitarios de utilidades y filtros.
+- `npm run db:types` — genera tipos con Supabase CLI. Define `SUPABASE_PROJECT_ID` y autentícate con `supabase login` primero.
+
+### Supabase: endurecimiento y tipos
+
+La migración `supabase/migrations/0002_hardening.sql` revoca la ejecución directa de la función que crea categorías al registrar el usuario y hace que el cron recupere ocurrencias recurrentes pendientes usando la fecha de `Europe/Madrid`. Aplica el contenido en **Supabase → SQL Editor** antes del siguiente release de producción. No modifica movimientos existentes.
+
+Para generar tipos actualizados desde el proyecto conectado, instala/autentícate con Supabase CLI, define la referencia del proyecto y ejecuta:
+
+```powershell
+supabase login
+$env:SUPABASE_PROJECT_ID = "<project-ref>"
+npm run db:types
+```
+
+El CLI escribe temporalmente y reemplaza el archivo de tipos solo si termina correctamente.
 
 ## CI/CD y despliegues
 

@@ -38,11 +38,13 @@ export function CategoriesView({ categories }: { categories: Category[] }) {
     update(item.id, "color", color);
     const { error: saveError } = await createClient().from("categories").update({ color }).eq("id", item.id);
     if (saveError) setError(`No se ha podido guardar el color de «${item.name}».`);
+    else router.refresh();
   });
   const setIcon = (item: Category, icon: string) => startTransition(async () => {
     update(item.id, "icon", icon);
     const { error: saveError } = await createClient().from("categories").update({ icon }).eq("id", item.id);
     if (saveError) setError(`No se ha podido guardar el icono de «${item.name}».`);
+    else router.refresh();
   });
   const add = (type: TransactionType) => startTransition(async () => {
     setError("");
@@ -52,7 +54,7 @@ export function CategoriesView({ categories }: { categories: Category[] }) {
     const defaultIcon = type === "expense" ? "circle-ellipsis" : "circle-plus";
     const { data, error: saveError } = await supabase.from("categories").insert({ user_id: user.id, name: type === "expense" ? "Nueva categoría" : "Nuevo ingreso", type, icon: defaultIcon, color: colors[items.length % colors.length], monthly_budget: null, archived: false }).select().single();
     if (saveError) setError("No se ha podido crear la categoría. Revisa que hayas aplicado la migración.");
-    else if (data) { setItems((current) => [...current, data]); setNotice("Categoría añadida"); window.setTimeout(() => setNotice(""), 2200); }
+    else if (data) { setItems((current) => [...current, data]); setNotice("Categoría añadida"); window.setTimeout(() => setNotice(""), 2200); router.refresh(); }
   });
   const remove = (item: Category) => {
     if (!window.confirm(`¿Eliminar la categoría «${item.name}»? Los movimientos guardados se conservarán sin categoría.`)) return;
