@@ -25,11 +25,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
     if (params.get("password-updated") === "1") return "";
     if (params.get("error") === "link") return "El enlace no es válido o ha caducado. Solicita uno nuevo.";
     if (params.get("error")) return "No se pudo completar la operación. Inténtalo de nuevo o solicita otro enlace.";
+    if (mode === "reset" && ((!params.get("token_hash") && !params.get("code")) || (params.get("token_hash") && params.get("type") !== "recovery"))) return "Abre el enlace de recuperación más reciente para cambiar tu contraseña.";
     return "";
   });
   const [recoveryToken] = useState(() => params.get("token_hash") || "");
   const [recoveryType] = useState(() => params.get("type") || "");
-  const [recoveryReady, setRecoveryReady] = useState(mode !== "reset" || Boolean(params.get("token_hash")));
+  const [recoveryReady, setRecoveryReady] = useState(mode !== "reset" || Boolean(params.get("token_hash")) && params.get("type") === "recovery");
   const [pending, startTransition] = useTransition();
   const content = copy[mode];
 
@@ -43,7 +44,8 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
   useEffect(() => {
     if (mode !== "reset") return;
-    if (recoveryToken && recoveryType === "recovery") {
+    if (recoveryToken) {
+      if (recoveryType !== "recovery") return;
       const cleanUrl = new URL(window.location.href);
       if (cleanUrl.searchParams.has("token_hash") || cleanUrl.searchParams.has("type")) {
         cleanUrl.searchParams.delete("token_hash");
@@ -53,22 +55,35 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       return;
     }
     const code = params.get("code");
+    if (!code) return;
 
-    let cancelled = false;
     const supabase = createClient();
-    const sessionPromise = code
-      ? supabase.auth.exchangeCodeForSession(code).then(({ data, error: exchangeError }) => ({ session: data.session, error: exchangeError }))
-      : supabase.auth.getSession().then(({ data, error: sessionError }) => ({ session: data.session, error: sessionError }));
-    sessionPromise.then(({ session, error: sessionError }) => {
-      if (cancelled) return;
-      if (!sessionError && session) {
-        setRecoveryReady(true);
-        const cleanUrl = new URL(window.location.href);
-        cleanUrl.searchParams.delete("code");
-        window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
-      } else setError("El enlace no es válido o ha caducado. Solicita uno nuevo para cambiar tu contraseña.");
+    let recoveryEventReceived = false;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "PASSWORD_RECOVERY" || !session) return;
+      recoveryEventReceived = true;
+      setRecoveryReady(true);
+      setError("");
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("code");
+      window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
     });
-    return () => { cancelled = true; };
+    // Supabase automatically exchanges PKCE codes while initializing the browser client.
+    // getSession waits for that initialization; exchanging the code again would fail because it is one-time use.
+    let recoveryCheckTimer: number | undefined;
+    void supabase.auth.getSession().then(({ data: { session }, error: sessionError }) => {
+      if (!session || sessionError) {
+        setError("El enlace no es válido o ha caducado. Solicita uno nuevo; si es un enlace antiguo, ábrelo en el mismo navegador donde lo pediste.");
+        return;
+      }
+      recoveryCheckTimer = window.setTimeout(() => {
+        if (!recoveryEventReceived) setError("No se pudo confirmar la recuperación. Solicita otro enlace y ábrelo desde el mismo navegador.");
+      }, 100);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (recoveryCheckTimer) window.clearTimeout(recoveryCheckTimer);
+    };
   }, [mode, params, recoveryToken, recoveryType]);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
