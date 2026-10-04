@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ArrowRight } from "lucide-react";
@@ -15,14 +15,61 @@ const copy = {
 };
 
 export function AuthForm({ mode }: { mode: AuthMode }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [pending, startTransition] = useTransition();
   const router = useRouter();
   const params = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [message, setMessage] = useState(() => mode === "login" && params.get("password-updated") === "1" ? "Contraseña actualizada. Ya puedes iniciar sesión." : "");
+  const [error, setError] = useState(() => {
+    if (params.get("password-updated") === "1") return "";
+    if (params.get("error") === "link") return "El enlace no es válido o ha caducado. Solicita uno nuevo.";
+    if (params.get("error")) return "No se pudo completar la operación. Inténtalo de nuevo o solicita otro enlace.";
+    return "";
+  });
+  const [recoveryToken] = useState(() => params.get("token_hash") || "");
+  const [recoveryType] = useState(() => params.get("type") || "");
+  const [recoveryReady, setRecoveryReady] = useState(mode !== "reset" || Boolean(params.get("token_hash")));
+  const [pending, startTransition] = useTransition();
   const content = copy[mode];
+
+  useEffect(() => {
+    if (mode === "login" && params.get("password-updated")) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("password-updated");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}`);
+    }
+  }, [mode, params]);
+
+  useEffect(() => {
+    if (mode !== "reset") return;
+    if (recoveryToken && recoveryType === "recovery") {
+      const cleanUrl = new URL(window.location.href);
+      if (cleanUrl.searchParams.has("token_hash") || cleanUrl.searchParams.has("type")) {
+        cleanUrl.searchParams.delete("token_hash");
+        cleanUrl.searchParams.delete("type");
+        window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+      }
+      return;
+    }
+    const code = params.get("code");
+
+    let cancelled = false;
+    const supabase = createClient();
+    const sessionPromise = code
+      ? supabase.auth.exchangeCodeForSession(code).then(({ data, error: exchangeError }) => ({ session: data.session, error: exchangeError }))
+      : supabase.auth.getSession().then(({ data, error: sessionError }) => ({ session: data.session, error: sessionError }));
+    sessionPromise.then(({ session, error: sessionError }) => {
+      if (cancelled) return;
+      if (!sessionError && session) {
+        setRecoveryReady(true);
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete("code");
+        window.history.replaceState(window.history.state, "", `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`);
+      } else setError("El enlace no es válido o ha caducado. Solicita uno nuevo para cambiar tu contraseña.");
+    });
+    return () => { cancelled = true; };
+  }, [mode, params, recoveryToken, recoveryType]);
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setMessage(""); setError("");
@@ -33,14 +80,31 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
         if (authError) { setError("No se ha podido iniciar sesión. Comprueba tu correo y contraseña."); return; }
         router.push(params.get("next") || "/dashboard"); router.refresh();
       } else if (mode === "forgot") {
-        const { error: authError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth/confirm?next=/reset-password` });
-        if (authError) { setError(authError.message); return; }
+        const { error: authError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+        if (authError) {
+          setError(authError.message.toLowerCase().includes("rate limit") || authError.message.toLowerCase().includes("too many")
+            ? "Se han solicitado demasiados enlaces. Espera un poco antes de volver a intentarlo."
+            : "No se pudo enviar el enlace. Comprueba la configuración del correo e inténtalo de nuevo.");
+          return;
+        }
         setMessage("Si existe una cuenta con ese correo, recibirás un enlace para cambiar la contraseña.");
       } else {
+        if (password !== passwordConfirmation) { setError("Las contraseñas no coinciden."); return; }
+        if (!recoveryReady) { setError("El enlace no es válido o ha caducado. Solicita uno nuevo."); return; }
+        if (recoveryToken && recoveryType === "recovery") {
+          const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: recoveryToken, type: "recovery" });
+          if (verifyError) { setError("El enlace no es válido o ha caducado. Solicita uno nuevo."); setRecoveryReady(false); return; }
+        }
         const { error: authError } = await supabase.auth.updateUser({ password });
-        if (authError) { setError(authError.message); return; }
+        if (authError) {
+          setError(authError.message.toLowerCase().includes("same")
+            ? "La nueva contraseña debe ser distinta de la anterior."
+            : "No se pudo actualizar la contraseña. Comprueba que tenga al menos 8 caracteres e inténtalo de nuevo.");
+          return;
+        }
         setMessage("Contraseña actualizada. Ya puedes iniciar sesión.");
-        router.push("/dashboard"); router.refresh();
+        await supabase.auth.signOut();
+        router.push("/login?password-updated=1"); router.refresh();
       }
     });
   };
@@ -58,10 +122,12 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
       <Link href="/login" className="flex w-fit items-center gap-2 text-sm font-semibold text-[var(--muted)] no-underline md:hidden">€ Mis Gastos</Link>
       <div className="mx-auto w-full max-w-[400px] pt-14 md:pt-0"><p className="mb-3 text-[11px] font-semibold tracking-[.15em] text-[var(--brass)]">{content.eyebrow}</p><h1 className="m-0 text-[34px] font-semibold tracking-[-.05em] sm:text-[40px]">{content.title}</h1><p className="muted mb-8 mt-3 text-sm leading-6">{content.body}</p>
         <form onSubmit={submit} className="space-y-4">
-          <div><label htmlFor="email" className="field-label">Correo electrónico</label><Field id="email" required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="tu@correo.com" className="!min-h-12 px-4" /></div>
+          {mode !== "reset" && <div><label htmlFor="email" className="field-label">Correo electrónico</label><Field id="email" required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="tu@correo.com" className="!min-h-12 px-4" /></div>}
           {mode !== "forgot" && <div><div className="mb-2 flex justify-between gap-2"><label htmlFor="password" className="text-sm font-medium">Contraseña</label>{mode === "login" && <Link href="/forgot-password" className="text-xs font-medium text-[var(--muted)]">¿La olvidaste?</Link>}</div><Field id="password" required minLength={8} autoComplete={mode === "login" ? "current-password" : "new-password"} type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Al menos 8 caracteres" className="!min-h-12 px-4" /></div>}
+          {mode === "reset" && <div><label htmlFor="password-confirmation" className="field-label">Repite la contraseña</label><Field id="password-confirmation" required minLength={8} autoComplete="new-password" type="password" value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} placeholder="Escríbela otra vez" className="!min-h-12 px-4" /></div>}
           {error && <p className="m-0 text-sm text-[var(--expense)]" role="alert">{error}</p>}{message && <p className="m-0 rounded-xl bg-[#1f9d7417] p-3 text-sm text-[var(--income)]" role="status">{message}</p>}
-          <Button disabled={pending} className="min-h-12 w-full">{pending ? "Un momento…" : content.button}{!pending && <ArrowRight size={16}/>}</Button>
+          {mode === "reset" && !recoveryReady && <p className="m-0 text-sm"><Link className="font-semibold text-[var(--ink)]" href="/forgot-password">Solicitar otro enlace</Link></p>}
+          <Button disabled={pending || (mode === "reset" && !recoveryReady)} className="min-h-12 w-full">{pending ? "Un momento…" : content.button}{!pending && <ArrowRight size={16}/>}</Button>
         </form>
         {mode !== "login" && <p className="muted mt-6 text-center text-sm"><Link href="/login" className="font-semibold text-[var(--ink)]">Volver a iniciar sesión</Link></p>}
       </div>

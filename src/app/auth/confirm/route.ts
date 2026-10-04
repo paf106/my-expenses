@@ -1,14 +1,21 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { getSafeRecoveryPath } from "@/lib/auth/recovery";
 
 export async function GET(request: NextRequest) {
   const tokenHash = request.nextUrl.searchParams.get("token_hash");
   const type = request.nextUrl.searchParams.get("type");
-  const next = request.nextUrl.searchParams.get("next") || "/dashboard";
-  if (tokenHash && type === "recovery" && (next === "/reset-password" || next === "/dashboard")) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
-    if (!error) return NextResponse.redirect(new URL(next, request.url));
+  const code = request.nextUrl.searchParams.get("code");
+  const safeNext = getSafeRecoveryPath(request.nextUrl.searchParams.get("next"));
+  if (tokenHash && type === "recovery") {
+    const target = new URL(safeNext, request.url);
+    target.searchParams.set("token_hash", tokenHash);
+    target.searchParams.set("type", type);
+    return NextResponse.redirect(target);
   }
-  return NextResponse.redirect(new URL("/login?error=auth", request.url));
+  if (code) {
+    const target = new URL("/reset-password", request.url);
+    target.searchParams.set("code", code);
+    return NextResponse.redirect(target);
+  }
+  return NextResponse.redirect(new URL("/forgot-password?error=link", request.url));
 }

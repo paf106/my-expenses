@@ -1,0 +1,12 @@
+<h2>Restablece tu contraseña</h2>
+
+<p>Hemos recibido una solicitud para cambiar la contraseña de Mis Gastos.</p>
+<p>Usa este enlace para elegir una contraseña nueva. Si no pediste el cambio, puedes ignorar este correo.</p>
+
+<p>
+  <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery">
+    Crear contraseña nueva
+  </a>
+</p>
+
+<p>Por seguridad, este enlace solo se puede usar una vez y caduca pronto.</p>

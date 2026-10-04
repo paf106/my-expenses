@@ -9,9 +9,20 @@ Aplicación personal de finanzas con Next.js, React, Tailwind CSS, Recharts y Su
 3. En Supabase Authentication > Sign In / Providers, desactiva **Allow new users to sign up**.
 4. En el SQL Editor del proyecto Supabase, ejecuta `supabase/migrations/0001_initial_schema.sql`.
 5. En Supabase Authentication > Users > Add user > Create new user, crea tu usuario con correo y contraseña y activa **Auto Confirm User**. El trigger ya instalado crea sus categorías iniciales.
-6. En Supabase Auth > URL Configuration, configura la Site URL de desarrollo como `http://localhost:3000` y añade `http://localhost:3000/**` a Redirect URLs.
-7. En Authentication > Email Templates > Reset Password, usa `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password` como enlace de recuperación.
+6. En Supabase Auth > URL Configuration, configura `http://localhost:3000` como Site URL local y añade `http://localhost:3000/**` a Redirect URLs. En producción, usa el dominio real como Site URL y añade `https://tu-dominio/**` a Redirect URLs.
+7. En Authentication > Email Templates > Reset Password, pega el contenido de `supabase/templates/recovery.html` y cambia también el asunto a **Restablece tu contraseña de Mis Gastos**. El enlace usa `{{ .RedirectTo }}` para respetar el entorno desde el que se solicitó el cambio. La aplicación verifica el token al guardar la nueva contraseña, para que los analizadores automáticos de enlaces no lo consuman.
 8. Ejecuta `npm run dev`.
+
+### SMTP de Supabase con Resend
+
+El SMTP predeterminado de Supabase sirve solo para pruebas: limita el envío y puede restringir los destinatarios a miembros de la organización. Para enviar correos de recuperación a cualquier dirección, configura un proveedor SMTP propio.
+
+1. En Resend, añade un dominio o subdominio que controles (por ejemplo, `auth.tu-dominio.com`) y publica en DNS los registros SPF y DKIM indicados por Resend. Añade DMARC y espera a que el dominio aparezca verificado.
+2. Crea una API key de envío restringida a ese dominio.
+3. En Supabase > Authentication > Emails > SMTP Settings, habilita SMTP e introduce host `smtp.resend.com`, puerto `465`, usuario `resend`, la API key como contraseña y un remitente del dominio verificado (por ejemplo, `no-reply@auth.tu-dominio.com`) con nombre `Mis Gastos`.
+4. En Supabase > Authentication > URL Configuration, comprueba que Site URL apunta al dominio de producción y que Redirect URLs incluye los dominios de producción y desarrollo usados por la app.
+
+La integración SMTP de Resend y los límites del plan gratuito pueden cambiar; consulta los valores actuales en Resend antes de configurarlo. La configuración del proveedor se realiza en los paneles de Resend y Supabase, no mediante variables de entorno de esta aplicación.
 
 La migración crea RLS por usuario, categorías iniciales al crear manualmente el usuario, funciones de estadísticas y la tarea diaria de movimientos recurrentes con `pg_cron`. Si Supabase informa que la extensión `pg_cron` ya existe en otro esquema, elimina esa primera sentencia `create extension if not exists pg_cron with schema extensions;` antes de ejecutar el resto (o deja que la extensión habilitada por el panel sea usada tal cual). La aplicación no ofrece registro público; desactivar **Allow new users to sign up** también bloquea altas a través de la API pública.
 
