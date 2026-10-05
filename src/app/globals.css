@@ -129,7 +129,7 @@
   .mobile-nav-icon, .icon-button, .button-primary, .control, .native-select { transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
   button:active:not(:disabled) { transform: scale(.98); }
   .popover-mobile-sheet { position: fixed; z-index: 60; inset-inline: 8px; bottom: calc(env(safe-area-inset-bottom) + 90px); max-height: min(56dvh, 440px); width: auto; overflow-y: auto; border: 1px solid var(--line); border-radius: 26px; background: var(--surface); padding: 16px; color: var(--ink); box-shadow: 0 20px 70px rgba(10,20,40,.32); }
-  .undo-snackbar { right: 12px; bottom: calc(env(safe-area-inset-bottom) + 156px); left: 12px; display: flex; min-height: 76px; align-items: center; gap: 11px; overflow: hidden; border-radius: 20px; padding: 12px 10px 14px 12px; color: var(--ink); }
+  .undo-snackbar { right: 0; bottom: calc(env(safe-area-inset-bottom) + 156px); left: 0; width: min(440px, calc(100vw - 24px)); margin-inline: auto; display: flex; min-height: 76px; align-items: center; gap: 11px; overflow: hidden; border-radius: 20px; padding: 12px 10px 14px 12px; color: var(--ink); }
   .undo-snackbar-icon { display: flex; width: 42px; height: 42px; flex: 0 0 42px; align-items: center; justify-content: center; border-radius: 14px; background: var(--soft-blue); color: var(--focus); }
   .undo-snackbar-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
   .undo-snackbar-title { overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 700; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
@@ -146,7 +146,7 @@
   .undo-snackbar.is-paused .undo-snackbar-progress { animation-play-state: paused; }
   .undo-snackbar-spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: snackbar-spin .7s linear infinite; }
   .snackbar-enter { animation: snackbar-enter var(--motion-medium) cubic-bezier(.2,.8,.2,1) backwards; }
-  @media (min-width: 768px) { .undo-snackbar { right: auto; bottom: 32px; left: calc(248px + 40px); width: min(440px, calc(100vw - 320px)); } }
+  @media (min-width: 768px) { .undo-snackbar { right: 0; bottom: 32px; left: 248px; width: min(440px, calc(100vw - 296px)); } }
 }
 
 @keyframes rise { from { transform: translateY(24px); opacity: .7; } to { transform: translateY(0); opacity: 1; } }
