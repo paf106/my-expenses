@@ -2,10 +2,11 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import type { Category, MonthTransaction } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
-import { euro, filterTransactions } from "@/lib/utils";
+import { currentMonth, euro, filterTransactions, fromCents, toCents } from "@/lib/utils";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import { TransactionDayGroup } from "@/components/transactions/transaction-day-group";
 import { useTransactionDialog } from "@/components/transaction-dialog-context";
@@ -15,7 +16,7 @@ import { usePwa } from "@/components/pwa-provider";
 
 export function TransactionsView({ month, transactions, categories }: { month: string; transactions: MonthTransaction[]; categories: Category[] }) {
   const [pending, startTransition] = useTransition();
-  const [removed, setRemoved] = useState<MonthTransaction | null>(null);
+  const [removed, setRemoved] = useState<MonthTransaction[]>([]);
   const [undoAutoFocus, setUndoAutoFocus] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [undoError, setUndoError] = useState("");
@@ -34,12 +35,14 @@ export function TransactionsView({ month, transactions, categories }: { month: s
   const deferredQuery = useDeferredValue(queryDraft);
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item])), [categories]);
-  const { openEdit } = useTransactionDialog();
-  const visibleTransactions = useMemo(() => transactions.filter((item) => item.id !== removed?.id), [transactions, removed?.id]);
+  const { openEdit, openNew } = useTransactionDialog();
+  const removedIds = useMemo(() => new Set(removed.map((item) => item.id)), [removed]);
+  const visibleTransactions = useMemo(() => transactions.filter((item) => !removedIds.has(item.id)), [transactions, removedIds]);
+  const filteredTransactions = useMemo(() => filterTransactions(visibleTransactions, categories, { type: filter, category, query: deferredQuery }), [visibleTransactions, categories, filter, category, deferredQuery]);
   const groups = useMemo(() => {
-    const filtered = filterTransactions(visibleTransactions, categories, { type: filter, category, query: deferredQuery });
-    return filtered.reduce<Record<string, MonthTransaction[]>>((acc, transaction) => { (acc[transaction.date] ||= []).push(transaction); return acc; }, {});
-  }, [visibleTransactions, categories, filter, category, deferredQuery]);
+    return filteredTransactions.reduce<Record<string, MonthTransaction[]>>((acc, transaction) => { (acc[transaction.date] ||= []).push(transaction); return acc; }, {});
+  }, [filteredTransactions]);
+  const netTotal = fromCents(filteredTransactions.reduce((sum, item) => sum + (item.type === "income" ? toCents(item.amount) : -toCents(item.amount)), 0));
 
   const syncParams = useCallback((type: string, q: string, selectedCategory: string) => {
     const next = new URLSearchParams(params.toString());
@@ -61,41 +64,53 @@ export function TransactionsView({ month, transactions, categories }: { month: s
   };
   const handleQuery = (value: string) => setQueryDraft(value);
   const handleCategory = (value: string) => syncParams(filter, queryDraft, value);
-  const remove = (transaction: MonthTransaction, fromKeyboard = false) => startTransition(async () => {
+  const remove = (transaction: MonthTransaction, fromKeyboard = false) => {
     setActionError("");
     if (!online) { setActionError("Conéctate a internet para eliminar este movimiento."); return; }
-    const { error } = await createClient().from("transactions").delete().eq("id", transaction.id);
-    if (error) { setActionError("No se pudo eliminar el movimiento. Comprueba la conexión e inténtalo de nuevo."); return; }
-    setRemoved(transaction); setUndoAutoFocus(fromKeyboard); setUndoError(""); router.refresh();
-  });
+    if (removedIds.has(transaction.id)) return;
+    setRemoved((current) => [...current, transaction]);
+    setUndoAutoFocus(fromKeyboard); setUndoError("");
+    startTransition(async () => {
+      const { error } = await createClient().from("transactions").delete().eq("id", transaction.id);
+      if (error) { setRemoved((current) => current.filter((item) => item.id !== transaction.id)); setUndoAutoFocus(false); setActionError("No se pudo eliminar el movimiento. Comprueba la conexión e inténtalo de nuevo."); return; }
+      router.refresh();
+    });
+  };
   const focusListWithoutScrolling = () => window.requestAnimationFrame(() => document.getElementById("transactions-list-title")?.focus({ preventScroll: true }));
-  const closeUndo = () => { setRemoved(null); setUndoAutoFocus(false); setUndoError(""); focusListWithoutScrolling(); };
+  const closeUndo = () => { setRemoved([]); setUndoAutoFocus(false); setUndoError(""); focusListWithoutScrolling(); };
   const undo = () => {
-    if (!removed || restoring) return;
+    const latestRemoved = removed.at(-1);
+    if (!latestRemoved || restoring) return;
     setRestoring(true);
     setUndoError("");
     startTransition(async () => {
-      const { error } = await createClient().from("transactions").insert({ type: removed.type, amount: removed.amount, description: removed.description, date: removed.date, category_id: removed.category_id, recurring_id: removed.recurring_id });
+      const { error } = await createClient().from("transactions").insert({ id: latestRemoved.id, created_at: latestRemoved.created_at, type: latestRemoved.type, amount: latestRemoved.amount, description: latestRemoved.description, date: latestRemoved.date, category_id: latestRemoved.category_id, recurring_id: latestRemoved.recurring_id });
       setRestoring(false);
       if (error) { setUndoError("No se pudo restaurar. Comprueba tu conexión e inténtalo de nuevo."); return; }
-       setRemoved(null); setUndoAutoFocus(false); setUndoError(""); router.refresh(); focusListWithoutScrolling();
+      const remaining = removed.filter((item) => item.id !== latestRemoved.id);
+      setRemoved(remaining); setUndoAutoFocus(remaining.length ? undoAutoFocus : false); setUndoError(""); router.refresh();
+      if (!remaining.length) focusListWithoutScrolling();
     });
   };
+  const hasActiveFilters = filter !== "all" || category !== "all" || Boolean(queryDraft.trim());
+  const clearFilters = () => { setQueryDraft(""); syncParams("all", "", "all"); };
+  const latestRemoved = removed.at(-1);
+  const isHistoricalMonth = month !== currentMonth();
 
   return <div className="motion-enter">
     <h2 id="transactions-list-title" tabIndex={-1} className="sr-only">Movimientos del periodo</h2>
     {actionError && <p role="alert" className="mb-4 rounded-xl bg-[var(--danger-soft)] p-3 text-sm text-[var(--expense)]">{actionError}</p>}
-    <TransactionFilters month={month} filter={filter} query={queryDraft} category={category} categories={categories} onFilter={handleFilter} onQuery={handleQuery} onCategory={handleCategory}/>
-    {!Object.keys(groups).length
-       ? <div className="card flex min-h-60 flex-col items-center justify-center p-6 text-center"><span className="mb-3 rounded-2xl bg-[var(--soft-blue)] p-3"><Search size={21}/></span><h2 className="m-0 text-base font-semibold">{visibleTransactions.length ? "No hay movimientos con estos filtros" : "Todavía no hay movimientos"}</h2><p className="muted mb-0 mt-2 max-w-xs text-sm">{visibleTransactions.length ? "Prueba a cambiar la búsqueda o los filtros." : "Cuando apuntes un gasto o ingreso, aparecerá aquí ordenado por fecha."}</p></div>
+    <TransactionFilters month={month} filter={filter} query={queryDraft} category={category} categories={categories} resultCount={filteredTransactions.length} netTotal={netTotal} hasActiveFilters={hasActiveFilters} onFilter={handleFilter} onQuery={handleQuery} onCategory={handleCategory} onClear={clearFilters}/>
+    {!filteredTransactions.length
+       ? <div className="card flex min-h-60 flex-col items-center justify-center p-6 text-center"><span aria-hidden="true" className="mb-3 rounded-2xl bg-[var(--soft-blue)] p-3"><Search size={21}/></span><h2 className="m-0 text-base font-semibold">{hasActiveFilters ? "No hay movimientos con estos filtros" : visibleTransactions.length || isHistoricalMonth ? "No hay movimientos en este mes" : "Todavía no hay movimientos"}</h2><p className="muted mb-0 mt-2 max-w-xs text-sm">{hasActiveFilters ? "Prueba a cambiar la búsqueda o los filtros." : isHistoricalMonth ? "Elige otro mes para consultar tus movimientos." : "Cuando apuntes un gasto o ingreso, aparecerá aquí ordenado por fecha."}</p>{hasActiveFilters ? <button type="button" onClick={clearFilters} className="mt-3 min-h-11 rounded-xl px-3 text-sm font-semibold text-[var(--accent)] hover:bg-[var(--soft-blue)]">Limpiar filtros</button> : isHistoricalMonth ? <Link href="/transactions" className="mt-3 inline-flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold text-[var(--accent)] no-underline hover:bg-[var(--soft-blue)]">Ir al mes actual</Link> : !visibleTransactions.length && online && <button type="button" onClick={() => openNew("expense")} className="button-primary mt-4 inline-flex items-center gap-2 px-4">Añadir gasto</button>}</div>
        : <div className="motion-stagger space-y-4">{Object.entries(groups).map(([day, list]) => <TransactionDayGroup key={day} day={day} transactions={list} categories={categoryMap} pending={pending || !online} onEdit={openEdit} onRemove={remove}/>)}</div>}
-    {removed && <UndoSnackbar
-      key={removed.id}
-      title={removed.type === "income" ? "Ingreso eliminado" : "Gasto eliminado"}
-      detail={removed.description || categoryMap.get(removed.category_id || "")?.name || "Movimiento"}
-      amount={`${removed.type === "income" ? "+" : "−"}${euro(removed.amount)}`}
-      amountClassName={removed.type === "income" ? "text-[var(--income)]" : ""}
-      icon={<CategoryIcon name={categoryMap.get(removed.category_id || "")?.icon} size={19}/>}
+    {latestRemoved && <UndoSnackbar
+       key={latestRemoved.id}
+       title={removed.length > 1 ? `${removed.length} movimientos eliminados` : latestRemoved.type === "income" ? "Ingreso eliminado" : "Gasto eliminado"}
+       detail={latestRemoved.description || categoryMap.get(latestRemoved.category_id || "")?.name || "Movimiento"}
+       amount={`${latestRemoved.type === "income" ? "+" : "−"}${euro(latestRemoved.amount)}`}
+       amountClassName={latestRemoved.type === "income" ? "text-[var(--income)]" : ""}
+       icon={<CategoryIcon name={categoryMap.get(latestRemoved.category_id || "")?.icon} size={19}/>}
        onUndo={undo}
        onClose={() => { if (!restoring) closeUndo(); }}
        restoring={restoring}

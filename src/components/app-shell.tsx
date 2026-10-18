@@ -86,7 +86,7 @@ export function AppShell({ children, categories, initialMonth }: { children: Rea
     const params = new URLSearchParams(search.toString());
     params.set("month", nextMonth);
     targetMonth.current = nextMonth;
-    startMonthTransition(() => router.push(`${pathname}?${params.toString()}`));
+    startMonthTransition(() => router.replace(`${pathname}?${params.toString()}`, { scroll: false }));
   };
   const logout = async () => { await clearOfflineCache(); await createClient().auth.signOut(); router.push("/login"); router.refresh(); };
   const closeSavedNotice = () => { if (!undoSavedPending) { setSavedMovement(null); setUndoSavedError(""); } };
@@ -129,7 +129,7 @@ export function AppShell({ children, categories, initialMonth }: { children: Rea
       <main id="main-content" aria-busy={monthPending || undefined} className={`mx-auto max-w-[1240px] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-5 md:px-10 md:pb-12 md:pt-6 ${showMobileNav ? "pb-[calc(env(safe-area-inset-bottom)+170px)]" : "pb-[calc(env(safe-area-inset-bottom)+32px)]"}`}>{children}</main>
     </div>
 
-    {showMobileNav && <MobileNavigation activePath={activePath} showAdd={showAdd} offline={!online} onAdd={() => openQuickAdd()}/>}
+    {showMobileNav && <MobileNavigation activePath={activePath} month={month} showAdd={showAdd} offline={!online} onAdd={() => openQuickAdd()}/>}
     <TransactionDialog key={`${editingTransaction?.id || `new-${quickAddType}`}-${dialogSession}`} categories={categories} open={dialogOpen || Boolean(editingTransaction)} transaction={editingTransaction} defaultType={quickAddType} offline={!online} onClose={() => { setDialogOpen(false); setEditingTransaction(null); }} onSaved={(saved) => { setDialogOpen(false); setEditingTransaction(null); setSavedMovement(saved); setUndoSavedError(""); router.refresh(); }} />
     <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{savedMovement ? `${savedMovement.previous ? "Cambios guardados" : savedMovement.current.type === "income" ? "Ingreso guardado" : "Gasto guardado"}. Puedes deshacerlo o añadir otro.` : ""}</div>
     {savedMovement && <UndoSnackbar

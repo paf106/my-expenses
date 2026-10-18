@@ -1,6 +1,7 @@
 const euroFormatter = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 2, useGrouping: "always" });
 const monthFormatter = new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" });
 const spanishDateFormatter = new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
+const transactionDayFormatter = new Intl.DateTimeFormat("es-ES", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const madridHourFormatter = new Intl.DateTimeFormat("en", { timeZone: "Europe/Madrid", hour: "numeric", hourCycle: "h23" });
 const madridDatePartsFormatter = new Intl.DateTimeFormat("en", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
 export const euro = (value: number) => euroFormatter.format(value);
@@ -52,6 +53,14 @@ export const formatDateEs = (value: string) => {
 };
 export const dateLabel = formatDateEs;
 export const formatDate = formatDateEs;
+export const transactionDayLabel = (value: string) => {
+  const today = localToday();
+  const yesterday = new Date(`${today}T12:00:00Z`);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  if (value === today) return "Hoy";
+  if (value === yesterday.toISOString().slice(0, 10)) return "Ayer";
+  return transactionDayFormatter.format(new Date(`${value.slice(0, 10)}T12:00:00Z`));
+};
 export const parseDateEs = (value: string) => {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
   if (!match) return null;

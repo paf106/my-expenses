@@ -43,7 +43,7 @@ export function TransactionDialog({ open, transaction, categories, defaultType =
   const { closing, dismiss } = useSheetDismiss(onClose);
   const today = localToday();
   const yesterday = previousDay(today);
-  const options = categories.filter((category) => !category.archived && category.type === type);
+  const options = categories.filter((category) => category.type === type && (!category.archived || category.id === transaction?.category_id));
   const recentCategories = recentIds.map((id) => options.find((category) => category.id === id)).filter((category): category is Category => Boolean(category));
   const suggestedCategories = recentCategories.length ? recentCategories : options.slice(0, 3);
   const categoryId = categoryChoice ?? recentCategories[0]?.id ?? options[0]?.id ?? "";
@@ -114,8 +114,8 @@ export function TransactionDialog({ open, transaction, categories, defaultType =
       const supabase = createClient();
       const values = { type, amount: numericAmount, description: description.trim(), category_id: categoryId || null, date };
       const { data, error: saveError } = transaction
-        ? await supabase.from("transactions").update(values).eq("id", transaction.id).select("id,category_id,recurring_id,type,amount,description,date").single()
-        : await supabase.from("transactions").insert(values).select("id,category_id,recurring_id,type,amount,description,date").single();
+        ? await supabase.from("transactions").update(values).eq("id", transaction.id).select("id,category_id,recurring_id,type,amount,description,date,created_at").single()
+        : await supabase.from("transactions").insert(values).select("id,category_id,recurring_id,type,amount,description,date,created_at").single();
       if (saveError) {
         setError(saveError.message.includes("Failed to fetch") ? "No se pudo conectar. Comprueba tu conexión y vuelve a intentarlo." : "No se pudo guardar el movimiento. Revisa tu conexión y vuelve a intentarlo.");
         return;

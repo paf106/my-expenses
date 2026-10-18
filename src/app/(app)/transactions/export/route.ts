@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { currentMonth, monthBounds, parseMonth } from "@/lib/utils";
+import { currentMonth, monthBounds, normalizeSearch, parseMonth } from "@/lib/utils";
 import { quoteCsvCell } from "@/lib/csv";
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -26,7 +26,9 @@ export async function GET(request: NextRequest) {
     data.push(...page);
     if (page.length < 1000) break;
   }
-  const lines = [["Fecha", "Tipo", "Categoría", "Descripción", "Importe EUR"], ...data.map((row) => [row.date, row.type === "income" ? "Ingreso" : "Gasto", (row.category as unknown as { name: string } | null)?.name || "", row.description, Number(row.amount).toFixed(2)])];
+  const queryText = normalizeSearch(request.nextUrl.searchParams.get("q") || "");
+  const filteredData = queryText ? data.filter((row) => normalizeSearch(`${row.description} ${(row.category as unknown as { name: string } | null)?.name || ""}`).includes(queryText)) : data;
+  const lines = [["Fecha", "Tipo", "Categoría", "Descripción", "Importe EUR"], ...filteredData.map((row) => [row.date, row.type === "income" ? "Ingreso" : "Gasto", (row.category as unknown as { name: string } | null)?.name || "", row.description, Number(row.amount).toFixed(2)])];
   const csv = `\uFEFF${lines.map((line) => line.map(quoteCsvCell).join(";")).join("\r\n")}`;
   return new NextResponse(csv, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="mis-gastos-${month}.csv"`, "Cache-Control": "private, no-store" } });
 }

@@ -26,7 +26,7 @@ export type Transaction = {
   category?: Pick<Category, "id" | "name" | "icon" | "color" | "type"> | null;
 };
 
-export type MonthTransaction = Pick<Transaction, "id" | "category_id" | "recurring_id" | "type" | "amount" | "description" | "date">;
+export type MonthTransaction = Pick<Transaction, "id" | "category_id" | "recurring_id" | "type" | "amount" | "description" | "date" | "created_at">;
 
 export type RecurringTransaction = {
   id: string;

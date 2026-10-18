@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { currentMonth, euro, filterTransactions, formatDateEs, fromCents, monthBounds, normalizeSearch, pageGreeting, parseAmountEs, parseDateEs, parseMonth, toCents } from "@/lib/utils";
+import { currentMonth, euro, filterTransactions, formatDateEs, fromCents, monthBounds, normalizeSearch, pageGreeting, parseAmountEs, parseDateEs, parseMonth, toCents, transactionDayLabel } from "@/lib/utils";
 import { quoteCsvCell } from "@/lib/csv";
 
 describe("finance utilities", () => {
@@ -64,6 +64,13 @@ describe("finance utilities", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-31T23:30:00.000Z"));
     expect(currentMonth()).toBe("2026-02");
+  });
+
+  it("labels today's and yesterday's transaction groups in Madrid time", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-18T10:00:00.000Z"));
+    expect(transactionDayLabel("2026-10-18")).toBe("Hoy");
+    expect(transactionDayLabel("2026-10-17")).toBe("Ayer");
   });
 
   it("filters by type, category and accent-insensitive description/category text", () => {

@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { monthBounds } from "@/lib/utils";
 
-export const transactionColumns = "id,category_id,recurring_id,type,amount,description,date";
+export const transactionColumns = "id,category_id,recurring_id,type,amount,description,date,created_at";
 
 export const getMonthTransactions = cache(async (month: string) => {
   const { start, end } = monthBounds(month);
