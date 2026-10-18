@@ -15,9 +15,10 @@ type UndoSnackbarProps = {
   restoring?: boolean;
   error?: string;
   duration?: number;
+  autoFocus?: boolean;
 };
 
-export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onUndo, onClose, restoring = false, error, duration = 12000 }: UndoSnackbarProps) {
+export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onUndo, onClose, restoring = false, error, duration = 12000, autoFocus = false }: UndoSnackbarProps) {
   const root = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
   const deadline = useRef(0);
@@ -36,7 +37,9 @@ export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onU
     return () => { if (timer.current !== null) window.clearTimeout(timer.current); };
   }, [duration]);
 
-  useEffect(() => { root.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus(); }, []);
+  useEffect(() => {
+    if (autoFocus) root.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+  }, [autoFocus]);
 
   useEffect(() => {
     if (restoring) pause("restore");
@@ -70,7 +73,7 @@ export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onU
     aria-atomic="true"
     onPointerEnter={(event) => { if (event.pointerType === "mouse") pause("pointer"); }}
     onPointerLeave={(event) => { if (event.pointerType === "mouse") resume("pointer"); }}
-    onFocusCapture={() => pause("focus")}
+    onFocusCapture={(event) => { if (event.target instanceof HTMLElement && event.target.matches(":focus-visible")) pause("focus"); }}
     onBlurCapture={(event) => {
       if (event.relatedTarget instanceof Node && root.current?.contains(event.relatedTarget)) return;
       resume("focus");

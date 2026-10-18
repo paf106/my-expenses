@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getSafeNextPath } from "@/lib/auth/recovery";
@@ -32,6 +32,7 @@ export function AuthForm({ mode, query }: { mode: AuthMode; query: Record<string
   const [errorField, setErrorField] = useState<"email" | "password" | "password-confirmation" | null>(null);
   const [recoveryToken] = useState(() => params.get("token_hash") || "");
   const [recoveryType] = useState(() => params.get("type") || "");
+  const recoveryVerified = useRef(false);
   const [recoveryReady, setRecoveryReady] = useState(mode !== "reset" || Boolean(params.get("token_hash")) && params.get("type") === "recovery");
   const [pending, startTransition] = useTransition();
   const content = copy[mode];
@@ -110,9 +111,10 @@ export function AuthForm({ mode, query }: { mode: AuthMode; query: Record<string
       } else {
         if (password !== passwordConfirmation) { setError("Las contraseñas no coinciden."); setErrorField("password-confirmation"); document.getElementById("password-confirmation")?.focus(); return; }
         if (!recoveryReady) { setError("El enlace no es válido o ha caducado. Solicita uno nuevo."); return; }
-        if (recoveryToken && recoveryType === "recovery") {
+        if (recoveryToken && recoveryType === "recovery" && !recoveryVerified.current) {
           const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: recoveryToken, type: "recovery" });
           if (verifyError) { setError("El enlace no es válido o ha caducado. Solicita uno nuevo."); setRecoveryReady(false); return; }
+          recoveryVerified.current = true;
         }
         const { error: authError } = await supabase.auth.updateUser({ password });
         if (authError) {

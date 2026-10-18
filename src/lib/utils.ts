@@ -17,8 +17,22 @@ export const monthBounds = (month: string) => {
 };
 export function parseAmountEs(value: string): number | null {
   const normalized = value.trim().replace(/\s+/g, "");
-  if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/.test(normalized)) return null;
-  const amount = Number(normalized.replaceAll(".", "").replace(",", "."));
+  let canonical: string;
+  if (normalized.includes(",") && normalized.includes(".")) {
+    if (!/^\d{1,3}(?:\.\d{3})+,\d{1,2}$/.test(normalized)) return null;
+    canonical = normalized.replaceAll(".", "").replace(",", ".");
+  } else if (normalized.includes(",")) {
+    if (!/^\d+,\d{1,2}$/.test(normalized)) return null;
+    canonical = normalized.replace(",", ".");
+  } else if (normalized.includes(".")) {
+    if (/^\d{1,3}(?:\.\d{3})+$/.test(normalized)) canonical = normalized.replaceAll(".", "");
+    else if (/^\d+\.\d{1,2}$/.test(normalized)) canonical = normalized;
+    else return null;
+  } else {
+    if (!/^\d+$/.test(normalized)) return null;
+    canonical = normalized;
+  }
+  const amount = Number(canonical);
   return Number.isFinite(amount) && amount <= 9_999_999_999.99 ? amount : null;
 }
 export const toCents = (amount: number) => Math.round((amount + Number.EPSILON) * 100);

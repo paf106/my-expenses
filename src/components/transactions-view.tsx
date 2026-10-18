@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState, useTransition } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import type { Category, MonthTransaction } from "@/lib/supabase/types";
@@ -16,6 +16,7 @@ import { usePwa } from "@/components/pwa-provider";
 export function TransactionsView({ month, transactions, categories }: { month: string; transactions: MonthTransaction[]; categories: Category[] }) {
   const [pending, startTransition] = useTransition();
   const [removed, setRemoved] = useState<MonthTransaction | null>(null);
+  const [undoAutoFocus, setUndoAutoFocus] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [undoError, setUndoError] = useState("");
   const [actionError, setActionError] = useState("");
@@ -26,7 +27,11 @@ export function TransactionsView({ month, transactions, categories }: { month: s
   const filter = params.get("type") || "all";
   const query = params.get("q") || "";
   const category = params.get("category") || "all";
-  const deferredQuery = useDeferredValue(query);
+  const [searchState, setSearchState] = useState(() => ({ urlQuery: query, draft: query }));
+  if (searchState.urlQuery !== query) setSearchState({ urlQuery: query, draft: query });
+  const queryDraft = searchState.draft;
+  const setQueryDraft = (draft: string) => setSearchState({ urlQuery: query, draft });
+  const deferredQuery = useDeferredValue(queryDraft);
 
   const categoryMap = useMemo(() => new Map(categories.map((item) => [item.id, item])), [categories]);
   const { openEdit } = useTransactionDialog();
@@ -36,29 +41,35 @@ export function TransactionsView({ month, transactions, categories }: { month: s
     return filtered.reduce<Record<string, MonthTransaction[]>>((acc, transaction) => { (acc[transaction.date] ||= []).push(transaction); return acc; }, {});
   }, [visibleTransactions, categories, filter, category, deferredQuery]);
 
-  const syncParams = (type: string, q: string, selectedCategory: string) => {
+  const syncParams = useCallback((type: string, q: string, selectedCategory: string) => {
     const next = new URLSearchParams(params.toString());
     if (q) next.set("q", q); else next.delete("q");
     if (type === "all") next.delete("type"); else next.set("type", type);
     if (selectedCategory === "all") next.delete("category"); else next.set("category", selectedCategory);
     const queryString = next.toString();
     window.history.replaceState(null, "", queryString ? `${pathname}?${queryString}` : pathname);
-  };
+  }, [params, pathname]);
+  useEffect(() => {
+    if (queryDraft === query) return;
+    const timer = window.setTimeout(() => syncParams(filter, queryDraft, category), 300);
+    return () => window.clearTimeout(timer);
+  }, [category, filter, query, queryDraft, syncParams]);
   const handleFilter = (value: string) => {
     const selectedStillMatches = categories.some((entry) => entry.id === category && (value === "all" || entry.type === value));
     const nextCategory = selectedStillMatches ? category : "all";
-    syncParams(value, query, nextCategory);
+    syncParams(value, queryDraft, nextCategory);
   };
-  const handleQuery = (value: string) => syncParams(filter, value, category);
-  const handleCategory = (value: string) => syncParams(filter, query, value);
-  const remove = (transaction: MonthTransaction) => startTransition(async () => {
+  const handleQuery = (value: string) => setQueryDraft(value);
+  const handleCategory = (value: string) => syncParams(filter, queryDraft, value);
+  const remove = (transaction: MonthTransaction, fromKeyboard = false) => startTransition(async () => {
     setActionError("");
     if (!online) { setActionError("Conéctate a internet para eliminar este movimiento."); return; }
     const { error } = await createClient().from("transactions").delete().eq("id", transaction.id);
     if (error) { setActionError("No se pudo eliminar el movimiento. Comprueba la conexión e inténtalo de nuevo."); return; }
-    setRemoved(transaction); setUndoError(""); router.refresh();
+    setRemoved(transaction); setUndoAutoFocus(fromKeyboard); setUndoError(""); router.refresh();
   });
-  const closeUndo = () => { setRemoved(null); setUndoError(""); window.requestAnimationFrame(() => document.getElementById("transactions-list-title")?.focus()); };
+  const focusListWithoutScrolling = () => window.requestAnimationFrame(() => document.getElementById("transactions-list-title")?.focus({ preventScroll: true }));
+  const closeUndo = () => { setRemoved(null); setUndoAutoFocus(false); setUndoError(""); focusListWithoutScrolling(); };
   const undo = () => {
     if (!removed || restoring) return;
     setRestoring(true);
@@ -67,14 +78,14 @@ export function TransactionsView({ month, transactions, categories }: { month: s
       const { error } = await createClient().from("transactions").insert({ type: removed.type, amount: removed.amount, description: removed.description, date: removed.date, category_id: removed.category_id, recurring_id: removed.recurring_id });
       setRestoring(false);
       if (error) { setUndoError("No se pudo restaurar. Comprueba tu conexión e inténtalo de nuevo."); return; }
-       setRemoved(null); setUndoError(""); router.refresh(); window.requestAnimationFrame(() => document.getElementById("transactions-list-title")?.focus());
+       setRemoved(null); setUndoAutoFocus(false); setUndoError(""); router.refresh(); focusListWithoutScrolling();
     });
   };
 
   return <div className="motion-enter">
     <h2 id="transactions-list-title" tabIndex={-1} className="sr-only">Movimientos del periodo</h2>
     {actionError && <p role="alert" className="mb-4 rounded-xl bg-[var(--danger-soft)] p-3 text-sm text-[var(--expense)]">{actionError}</p>}
-    <TransactionFilters month={month} filter={filter} query={query} category={category} categories={categories} onFilter={handleFilter} onQuery={handleQuery} onCategory={handleCategory}/>
+    <TransactionFilters month={month} filter={filter} query={queryDraft} category={category} categories={categories} onFilter={handleFilter} onQuery={handleQuery} onCategory={handleCategory}/>
     {!Object.keys(groups).length
        ? <div className="card flex min-h-60 flex-col items-center justify-center p-6 text-center"><span className="mb-3 rounded-2xl bg-[var(--soft-blue)] p-3"><Search size={21}/></span><h2 className="m-0 text-base font-semibold">{visibleTransactions.length ? "No hay movimientos con estos filtros" : "Todavía no hay movimientos"}</h2><p className="muted mb-0 mt-2 max-w-xs text-sm">{visibleTransactions.length ? "Prueba a cambiar la búsqueda o los filtros." : "Cuando apuntes un gasto o ingreso, aparecerá aquí ordenado por fecha."}</p></div>
        : <div className="motion-stagger space-y-4">{Object.entries(groups).map(([day, list]) => <TransactionDayGroup key={day} day={day} transactions={list} categories={categoryMap} pending={pending || !online} onEdit={openEdit} onRemove={remove}/>)}</div>}
@@ -85,10 +96,11 @@ export function TransactionsView({ month, transactions, categories }: { month: s
       amount={`${removed.type === "income" ? "+" : "−"}${euro(removed.amount)}`}
       amountClassName={removed.type === "income" ? "text-[var(--income)]" : ""}
       icon={<CategoryIcon name={categoryMap.get(removed.category_id || "")?.icon} size={19}/>}
-      onUndo={undo}
+       onUndo={undo}
        onClose={() => { if (!restoring) closeUndo(); }}
-      restoring={restoring}
-      error={undoError}
+       restoring={restoring}
+       error={undoError}
+       autoFocus={undoAutoFocus}
     />}
   </div>;
 }

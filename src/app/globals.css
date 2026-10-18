@@ -189,7 +189,11 @@
 @media (min-width: 768px) { .category-editor-dialog { margin: auto; width: min(calc(100% - 40px), 520px); max-height: min(86dvh, 720px); border-bottom: 1px solid var(--line); border-radius: 24px; } }
 @keyframes sink-desktop { from { transform: translateY(0); opacity: 1; } to { transform: translateY(24px); opacity: .7; } }
 @media (hover: hover) and (pointer: fine) {
-   .mobile-nav-link:hover { color: var(--ink); }
+  .mobile-nav-link:hover { color: var(--ink); }
+}
+@media (max-width: 767px) {
+  .control { font-size: 16px !important; }
+  .transaction-search-input { font-size: 16px; }
 }
 @media (min-width: 768px) {
   .popover-panel { width: min(300px, calc(100vw - 24px)); max-height: min(60vh, 420px); overflow-y: auto; }

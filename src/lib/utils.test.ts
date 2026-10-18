@@ -25,8 +25,11 @@ describe("finance utilities", () => {
     expect(parseAmountEs("1.234,56")).toBe(1234.56);
     expect(parseAmountEs("1.000")).toBe(1000);
     expect(parseAmountEs("12,34")).toBe(12.34);
+    expect(parseAmountEs("12.34")).toBe(12.34);
+    expect(parseAmountEs("1234.50")).toBe(1234.5);
     expect(parseAmountEs("12,345")).toBeNull();
     expect(parseAmountEs("1.23,45")).toBeNull();
+    expect(parseAmountEs("1234.567")).toBeNull();
   });
 
   it("sums money in integer cents", () => {
