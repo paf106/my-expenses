@@ -24,9 +24,10 @@ jobs:
 
     steps:
       - name: Checkout full history
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Verify tag is on main
         run: |
@@ -45,7 +46,7 @@ jobs:
           fi
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
@@ -58,19 +59,19 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
           VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-        run: npx --yes vercel@60.0.1 link --yes --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_ID" --token "$VERCEL_TOKEN"
+        run: npx --yes vercel@64.2.0 link --yes --project "$VERCEL_PROJECT_ID" --scope "$VERCEL_TEAM_ID"
 
       - name: Pull production environment
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: npx --yes vercel@60.0.1 pull --yes --environment=production --token "$VERCEL_TOKEN"
+        run: npx --yes vercel@64.2.0 pull --yes --environment=production
 
       - name: Build Vercel deployment
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: npx --yes vercel@60.0.1 build --prod --token "$VERCEL_TOKEN"
+        run: env -u VERCEL_TOKEN npx --yes vercel@64.2.0 build --prod --token "$VERCEL_TOKEN"
 
       - name: Deploy prebuilt application
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: npx --yes vercel@60.0.1 deploy --prebuilt --prod --token "$VERCEL_TOKEN"
+        run: npx --yes vercel@64.2.0 deploy --prebuilt --prod

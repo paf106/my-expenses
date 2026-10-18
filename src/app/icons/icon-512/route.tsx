@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 
 export const contentType = "image/png";
 export const size = { width: 512, height: 512 };
+export const dynamic = "force-static";
 
 export function GET() {
   return new ImageResponse(

@@ -1,3 +1,5 @@
-import { Suspense } from "react";
 import { AuthForm } from "@/components/auth-form";
-export default function LoginPage() { return <Suspense><AuthForm mode="login" /></Suspense>; }
+import { normalizeAuthQuery, type AuthQueryInput } from "@/lib/auth/query";
+import type { Metadata } from "next";
+export const metadata: Metadata = { title: "Iniciar sesión" };
+export default async function LoginPage({ searchParams }: { searchParams: Promise<AuthQueryInput> }) { return <AuthForm mode="login" query={normalizeAuthQuery(await searchParams)} />; }

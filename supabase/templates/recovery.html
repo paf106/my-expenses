@@ -47,14 +47,14 @@
                   </tr>
                 </table>
 
-                <p class="text-accent" style="margin:34px 0 10px; color:#9a7414; font-size:11px; font-weight:700; letter-spacing:1.5px; line-height:16px;">UN PASO MÁS</p>
+                <p class="text-accent" style="margin:34px 0 10px; color:#805c08; font-size:11px; font-weight:700; letter-spacing:1.5px; line-height:16px;">UN PASO MÁS</p>
                 <h1 class="title text-main" style="margin:0; color:#16213a; font-size:30px; font-weight:650; letter-spacing:-1.2px; line-height:38px;">Restablece tu contraseña</h1>
-                <p class="text-muted" style="margin:14px 0 0; color:#718096; font-size:15px; font-weight:400; line-height:24px;">Hemos recibido una solicitud para cambiar la contraseña de tu cuenta. Pulsa el botón para elegir una nueva.</p>
+                <p class="text-muted" style="margin:14px 0 0; color:#596579; font-size:15px; font-weight:400; line-height:24px;">Hemos recibido una solicitud para cambiar la contraseña de tu cuenta. Pulsa el botón para elegir una nueva.</p>
 
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%; margin-top:28px; border-collapse:separate;">
                   <tr>
                     <td align="center" bgcolor="#16213a" class="cta" style="border-radius:12px; background-color:#16213a;">
-                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery" target="_blank" class="cta" style="display:block; padding:15px 20px; border:1px solid #16213a; border-radius:12px; background-color:#16213a; color:#ffffff; font-size:15px; font-weight:650; line-height:20px; text-align:center; text-decoration:none;">Crear contraseña nueva&nbsp;&nbsp;→</a>
+                      <a href="{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&amp;type=recovery" target="_blank" class="cta" style="display:block; padding:15px 20px; border:1px solid #16213a; border-radius:12px; background-color:#16213a; color:#ffffff; font-size:15px; font-weight:650; line-height:20px; text-align:center; text-decoration:none;">Crear contraseña nueva&nbsp;&nbsp;<span aria-hidden="true">→</span></a>
                     </td>
                   </tr>
                 </table>
@@ -63,14 +63,14 @@
                   <tr><td class="divider" style="border-top:1px solid #dfe5ee; font-size:0; line-height:0;">&nbsp;</td></tr>
                 </table>
 
-                <p class="text-muted" style="margin:20px 0 0; color:#718096; font-size:13px; line-height:20px;">Por seguridad, este enlace solo se puede usar una vez y caduca pronto. Si no solicitaste el cambio, puedes ignorar este correo.</p>
-                <p class="link-fallback" style="margin:18px 0 0; color:#718096; font-size:12px; line-height:19px;">¿No funciona el botón? Copia y pega esta dirección en el navegador:<br>
-                  <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery" target="_blank" class="link-fallback" style="color:#718096; word-break:break-all; text-decoration:underline;">{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=recovery</a>
+                <p class="text-muted" style="margin:20px 0 0; color:#596579; font-size:13px; line-height:20px;">Por seguridad, este enlace solo se puede usar una vez y caduca pronto. Si no solicitaste el cambio, puedes ignorar este correo.</p>
+                <p class="link-fallback" style="margin:18px 0 0; color:#596579; font-size:12px; line-height:19px;">¿No funciona el botón? Copia y pega esta dirección en el navegador:<br>
+                  <a href="{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&amp;type=recovery" target="_blank" class="link-fallback" style="color:#5d687a; word-break:break-all; text-decoration:underline;">{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&amp;type=recovery</a>
                 </p>
               </td>
             </tr>
             <tr>
-              <td align="center" class="text-muted" style="padding:20px 12px 0; color:#718096; font-size:12px; line-height:18px;">Has recibido este correo porque se pidió cambiar la contraseña de Mis Gastos.</td>
+              <td align="center" class="text-muted" style="padding:20px 12px 0; color:#596579; font-size:12px; line-height:18px;">Has recibido este correo porque se pidió cambiar la contraseña de Mis Gastos.</td>
             </tr>
           </table>
         </td>

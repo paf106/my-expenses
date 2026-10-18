@@ -1,8 +1,11 @@
 node_modules/
 .next/
+next-env.d.ts
 out/
 build/
 .env*
 !.env.example
 *.tsbuildinfo
 .vercel
+coverage/
+supabase/.temp/

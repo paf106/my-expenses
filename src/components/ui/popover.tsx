@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type RefObject } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { cx } from "@/lib/utils";
 
@@ -15,6 +15,8 @@ export function Popover({
   panelClassName,
   className,
   mobileSheet = false,
+  panelRole,
+  portal = true,
 }: {
   label: string;
   trigger: (props: { onClick: () => void; expanded: boolean; controls: string; triggerRef: RefObject<HTMLButtonElement | null> }) => React.ReactNode;
@@ -23,6 +25,8 @@ export function Popover({
   panelClassName?: string;
   className?: string;
   mobileSheet?: boolean;
+  panelRole?: "menu" | "listbox" | "dialog";
+  portal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
@@ -30,11 +34,12 @@ export function Popover({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
+  const [restoreFocus, setRestoreFocus] = useState(false);
   const panelId = useId();
-  const close = () => setOpen(false);
+  const close = useCallback((returnFocus = true) => { setRestoreFocus(returnFocus); setOpen(false); }, []);
   const toggle = () => {
     if (open) {
-      setOpen(false);
+      close(false);
       return;
     }
     const triggerBounds = root.current?.getBoundingClientRect();
@@ -59,7 +64,7 @@ export function Popover({
 
   useEffect(() => {
     if (!open) {
-      if (wasOpen.current) triggerRef.current?.focus();
+      if (wasOpen.current && restoreFocus) triggerRef.current?.focus();
       wasOpen.current = false;
       return;
     }
@@ -78,23 +83,25 @@ export function Popover({
       setPosition({ top: openUp ? Math.max(12, triggerBounds.top - Math.min(panelHeight, maxHeight) - 8) : triggerBounds.bottom + 8, left, maxHeight });
     };
     const onPointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Node && !root.current?.contains(event.target) && !panelRef.current?.contains(event.target)) close();
+      if (event.target instanceof Node && !root.current?.contains(event.target) && !panelRef.current?.contains(event.target)) close(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        close();
+        close(true);
       }
     };
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
-    if (isMobileSheet) panelRef.current?.querySelector<HTMLElement>("[data-popover-item]")?.focus();
+    const focusInitialItem = () => {
+      const selected = panelRef.current?.querySelector<HTMLElement>('[data-popover-item][aria-selected="true"], [data-popover-item][aria-pressed="true"]');
+      (selected || panelRef.current?.querySelector<HTMLElement>("[data-popover-item]"))?.focus();
+    };
+    if (isMobileSheet) focusInitialItem();
     else {
       const frame = window.requestAnimationFrame(() => {
         updatePosition();
-        const panel = panelRef.current;
-        if (!panel) return;
-        panel.querySelector<HTMLElement>("[data-popover-item]")?.focus();
+        focusInitialItem();
       });
       window.addEventListener("resize", updatePosition);
       window.addEventListener("scroll", updatePosition, true);
@@ -110,18 +117,26 @@ export function Popover({
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, align, mobileSheet]);
+  }, [open, align, mobileSheet, close, restoreFocus]);
 
   const panel = open ? <>
-    {mobileSheet && <div className="fixed inset-0 z-[59] bg-[#101a2c88] backdrop-blur-[2px] md:hidden" aria-hidden="true" onClick={close} />}
+    {mobileSheet && <div className="fixed inset-0 z-[59] bg-[var(--scrim)] backdrop-blur-[2px] md:hidden" aria-hidden="true" onClick={() => close(false)} />}
     <div
       ref={panelRef}
       id={panelId}
-      aria-label={label}
+      role={panelRole}
+      aria-label={panelRole ? label : undefined}
       onKeyDown={(event) => {
-        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+        if (event.key === "Tab") {
+          event.preventDefault();
+          close(true);
+          return;
+        }
+        if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
         const items = [...(panelRef.current?.querySelectorAll<HTMLElement>("[data-popover-item]") || [])];
         const index = items.indexOf(document.activeElement as HTMLElement);
+        if (event.key === "Home") { items[0]?.focus(); event.preventDefault(); return; }
+        if (event.key === "End") { items.at(-1)?.focus(); event.preventDefault(); return; }
         const step = event.key === "ArrowDown" ? 1 : -1;
         items[(index + step + items.length) % items.length]?.focus();
         event.preventDefault();
@@ -138,6 +153,6 @@ export function Popover({
 
   return <div ref={root} className={cx("relative inline-flex", className)}>
     {trigger({ onClick: toggle, expanded: open, controls: panelId, triggerRef })}
-    {typeof document !== "undefined" && panel && createPortal(panel, document.body)}
+    {panel && (portal && typeof document !== "undefined" ? createPortal(panel, document.body) : panel)}
   </div>;
 }

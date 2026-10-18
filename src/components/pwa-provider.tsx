@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useSyncExternalStore } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 type BeforeInstallPromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }> };
 type PwaContextValue = { online: boolean; installAvailable: boolean; installed: boolean; install: () => Promise<boolean> };
@@ -26,6 +27,16 @@ function getInstalledSnapshot() {
   return window.matchMedia("(display-mode: standalone)").matches || ("standalone" in navigator && Boolean((navigator as Navigator & { standalone?: boolean }).standalone));
 }
 
+function subscribeInstalled(callback: () => void) {
+  const query = window.matchMedia("(display-mode: standalone)");
+  query.addEventListener("change", callback);
+  window.addEventListener("appinstalled", callback);
+  return () => {
+    query.removeEventListener("change", callback);
+    window.removeEventListener("appinstalled", callback);
+  };
+}
+
 export function usePwa() {
   const context = useContext(PwaContext);
   if (!context) throw new Error("usePwa must be used within PwaProvider");
@@ -45,20 +56,19 @@ export async function clearOfflineCache() {
 export function PwaProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const online = useSyncExternalStore(subscribeOnline, getOnlineSnapshot, () => true);
-  const installed = useSyncExternalStore((callback) => {
-    const query = window.matchMedia("(display-mode: standalone)");
-    query.addEventListener("change", callback);
-    window.addEventListener("appinstalled", callback);
-    return () => {
-      query.removeEventListener("change", callback);
-      window.removeEventListener("appinstalled", callback);
-    };
-  }, getInstalledSnapshot, () => false);
+  const installed = useSyncExternalStore(subscribeInstalled, getInstalledSnapshot, () => false);
   const [installAvailable, setInstallAvailable] = useState(false);
 
   useEffect(() => {
     if (pathname === "/login") void clearOfflineCache();
   }, [pathname]);
+
+  useEffect(() => {
+    const { data: { subscription } } = createClient().auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || (event === "INITIAL_SESSION" && !session)) void clearOfflineCache();
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const installWindow = window as InstallWindow;
@@ -87,7 +97,7 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const install = async () => {
+  const install = useCallback(async () => {
     const installWindow = window as InstallWindow;
     if (!installWindow.__misGastosInstallPrompt) return false;
     const prompt = installWindow.__misGastosInstallPrompt;
@@ -97,7 +107,8 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
     const result = await prompt.userChoice;
     window.dispatchEvent(new Event(INSTALL_EVENT));
     return result.outcome === "accepted";
-  };
+  }, []);
 
-  return <PwaContext.Provider value={{ online, installAvailable, installed, install }}>{children}</PwaContext.Provider>;
+  const value = useMemo(() => ({ online, installAvailable, installed, install }), [online, installAvailable, installed, install]);
+  return <PwaContext.Provider value={value}>{children}</PwaContext.Provider>;
 }

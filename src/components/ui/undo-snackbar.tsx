@@ -17,7 +17,7 @@ type UndoSnackbarProps = {
   duration?: number;
 };
 
-export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onUndo, onClose, restoring = false, error, duration = 6000 }: UndoSnackbarProps) {
+export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onUndo, onClose, restoring = false, error, duration = 12000 }: UndoSnackbarProps) {
   const root = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
   const deadline = useRef(0);
@@ -35,6 +35,8 @@ export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onU
     scheduleClose();
     return () => { if (timer.current !== null) window.clearTimeout(timer.current); };
   }, [duration]);
+
+  useEffect(() => { root.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus(); }, []);
 
   useEffect(() => {
     if (restoring) pause("restore");

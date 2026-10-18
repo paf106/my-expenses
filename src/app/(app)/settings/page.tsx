@@ -3,6 +3,8 @@ import { ArrowRight, Repeat2, Tags, UserRound } from "lucide-react";
 import { PageHeading } from "@/components/ui/page-heading";
 import packageJson from "../../../../package.json";
 import { InstallAppCard } from "@/components/install-app-card";
+import type { Metadata } from "next";
+export const metadata: Metadata = { title: "Ajustes" };
 export default function SettingsPage() {
   const items = [
     { href: "/settings/categories", title: "Categorías y presupuestos", detail: "Organiza tus gastos y define límites", icon: Tags },

@@ -29,7 +29,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   };
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const apply = () => { document.documentElement.dataset.theme = theme === "dark" || (theme === "system" && media.matches) ? "dark" : "light"; };
+    const apply = () => {
+      const dark = theme === "dark" || (theme === "system" && media.matches);
+      document.documentElement.dataset.theme = dark ? "dark" : "light";
+      document.querySelectorAll('meta[name="theme-color"]').forEach((element) => element.setAttribute("content", dark ? "#0f1729" : "#f3f5f8"));
+    };
     apply();
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);

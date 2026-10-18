@@ -4,12 +4,25 @@ const spanishDateFormatter = new Intl.DateTimeFormat("es-ES", { day: "2-digit", 
 const madridHourFormatter = new Intl.DateTimeFormat("en", { timeZone: "Europe/Madrid", hour: "numeric", hourCycle: "h23" });
 const madridDatePartsFormatter = new Intl.DateTimeFormat("en", { timeZone: "Europe/Madrid", year: "numeric", month: "2-digit", day: "2-digit" });
 export const euro = (value: number) => euroFormatter.format(value);
-export const monthLabel = (month: string) => monthFormatter.format(new Date(`${month}-01T12:00:00`));
-export const monthBounds = (month: string) => {
-  const start = new Date(`${month}-01T00:00:00`);
-  const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
-  return { start: `${month}-01`, end: `${month}-${String(end.getDate()).padStart(2, "0")}` };
+export const parseMonth = (value: string | null | undefined) => value && /^\d{4}-(0[1-9]|1[0-2])$/.test(value) && Number(value.slice(0, 4)) >= 1900 ? value : null;
+export const monthLabel = (month: string) => {
+  const safeMonth = parseMonth(month) || currentMonth();
+  return monthFormatter.format(new Date(`${safeMonth}-01T12:00:00`));
 };
+export const monthBounds = (month: string) => {
+  const safeMonth = parseMonth(month) || currentMonth();
+  const [year, monthNumber] = safeMonth.split("-").map(Number);
+  const endDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  return { start: `${safeMonth}-01`, end: `${safeMonth}-${String(endDay).padStart(2, "0")}` };
+};
+export function parseAmountEs(value: string): number | null {
+  const normalized = value.trim().replace(/\s+/g, "");
+  if (!/^(?:\d+|\d{1,3}(?:\.\d{3})+)(?:,\d{1,2})?$/.test(normalized)) return null;
+  const amount = Number(normalized.replaceAll(".", "").replace(",", "."));
+  return Number.isFinite(amount) && amount <= 9_999_999_999.99 ? amount : null;
+}
+export const toCents = (amount: number) => Math.round((amount + Number.EPSILON) * 100);
+export const fromCents = (cents: number) => cents / 100;
 export const currentMonth = () => {
   const parts = madridDatePartsFormatter.formatToParts(new Date());
   return `${parts.find((part) => part.type === "year")?.value}-${parts.find((part) => part.type === "month")?.value}`;

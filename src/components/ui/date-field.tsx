@@ -5,7 +5,7 @@ import { CalendarDays } from "lucide-react";
 import { formatDateEs, parseDateEs } from "@/lib/utils";
 import { cx } from "@/lib/utils";
 
-export function DateField({ id, value, onChange, required, className }: { id?: string; value: string; onChange: (value: string) => void; required?: boolean; className?: string }) {
+export function DateField({ id, name, value, onChange, required, className }: { id?: string; name?: string; value: string; onChange: (value: string) => void; required?: boolean; className?: string }) {
   const picker = useRef<HTMLInputElement>(null);
   const textInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(() => formatDateEs(value));
@@ -31,8 +31,9 @@ export function DateField({ id, value, onChange, required, className }: { id?: s
   };
 
   return <div className={cx("relative", className)}>
-    <input ref={textInput} id={id} type="text" inputMode="numeric" autoComplete="off" required={required} pattern="\d{2}/\d{2}/\d{4}" aria-label="Fecha (DD/MM/AAAA)" placeholder="DD/MM/AAAA" value={draft} onChange={(event) => edit(event.target.value)} onBlur={commit} className="control pr-12" />
-    <button type="button" aria-label="Abrir calendario" onClick={openPicker} className="absolute right-1 top-1 inline-flex h-10 w-10 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--soft-blue)]"><CalendarDays size={17}/></button>
+    <input ref={textInput} id={id} name={name} type="text" inputMode="numeric" autoComplete="off" required={required} pattern="\d{2}/\d{2}/\d{4}" aria-describedby={id ? `${id}-format` : undefined} placeholder="DD/MM/AAAA" value={draft} onChange={(event) => edit(event.target.value)} onBlur={commit} className="control pr-12" />
+    {id && <span id={`${id}-format`} className="sr-only">Formato: día, mes y año.</span>}
+    <button type="button" aria-label="Abrir calendario" onClick={openPicker} className="absolute right-1 top-1 inline-flex h-11 w-11 items-center justify-center rounded-lg text-[var(--muted)] hover:bg-[var(--soft-blue)]"><CalendarDays size={17}/></button>
     <input ref={picker} tabIndex={-1} aria-hidden="true" type="date" value={value} onChange={(event) => { onChange(event.target.value); setDraft(formatDateEs(event.target.value)); }} className="pointer-events-none absolute bottom-0 right-1 h-px w-px opacity-0" />
   </div>;
 }

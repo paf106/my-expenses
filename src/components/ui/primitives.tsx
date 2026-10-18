@@ -8,7 +8,7 @@ export function Button({ variant = "primary", className, ...props }: ButtonHTMLA
     quiet: "text-[var(--muted)] hover:bg-[var(--soft-blue)] hover:text-[var(--ink)]",
     danger: "text-[var(--expense)] hover:bg-[var(--danger-soft)]",
   };
-  return <button {...props} className={cx("inline-flex min-h-11 items-center justify-center gap-2 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55", variants[variant], className)} />;
+  return <button {...props} className={cx("inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-55", variants[variant], className)} />;
 }
 
 export function IconButton({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
