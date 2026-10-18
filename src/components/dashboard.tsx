@@ -1,11 +1,9 @@
-import { ArrowDownLeft, ArrowRight, ArrowUpRight, Wallet } from "lucide-react";
-import Link from "next/link";
+import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import type { Category, MonthTransaction } from "@/lib/supabase/types";
-import { currentMonth, dateLabel, euro, fromCents, toCents } from "@/lib/utils";
-import { CategoryIcon } from "@/components/ui/category-icon";
-import { EmptyState } from "@/components/ui/empty-state";
+import { currentMonth, euro, fromCents, monthLabel, toCents } from "@/lib/utils";
 import { CategoryBreakdownCard } from "@/components/dashboard/category-breakdown-card";
 import { BudgetCard } from "@/components/dashboard/budget-card";
+import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 
 export function Dashboard({ month, transactions, categories }: { month: string; transactions: MonthTransaction[]; categories: Category[] }) {
   const totalsCents = transactions.reduce((result, transaction) => {
@@ -19,6 +17,8 @@ export function Dashboard({ month, transactions, categories }: { month: string; 
   const savingsCents = incomeCents - expenseCents;
   const savings = fromCents(savingsCents);
   const overspent = expenseCents > incomeCents;
+  const noIncomeYet = incomeCents === 0 && expenseCents > 0;
+  const viewingCurrentMonth = month === currentMonth();
   const categoryById = new Map(categories.map((category) => [category.id, category]));
   const categoryTotals = new Map<string, number>();
   let uncategorizedCents = 0;
@@ -38,11 +38,11 @@ export function Dashboard({ month, transactions, categories }: { month: string; 
   const spentPercent = incomeCents > 0 ? Math.min(expenseCents / incomeCents * 100, 100) : expenseCents > 0 ? 100 : 0;
   const savingsPercent = income > 0 ? Math.max(0, 100 - spentPercent) : 0;
   const recent = transactions.slice(0, 4);
-  return <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2 xl:gap-6">
-    <section className="card motion-enter flex h-full flex-col overflow-hidden p-5 md:p-6">
-      <div className="mb-6 flex items-start justify-between gap-3">
-        <div className="min-w-0"><p className="muted mb-1 text-sm">{overspent ? "Has gastado por encima de tus ingresos" : "Este mes te quedan"}</p><p className={`amount m-0 break-words text-[34px] font-semibold tracking-[-.05em] sm:text-[40px] ${overspent ? "text-[var(--expense)]" : ""}`}>{euro(Math.abs(savings))}{overspent ? " por encima" : ""}</p></div>
-        {month === currentMonth() && <div className="hidden shrink-0 items-center gap-2 rounded-full bg-[var(--soft-blue)] px-3 py-2 text-xs font-semibold text-[var(--muted)] sm:flex"><span className="h-2 w-2 rounded-full bg-[var(--income)]" /> Mes actual</div>}
+   return <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2 xl:gap-6">
+     <section className="card order-1 motion-enter flex h-full flex-col overflow-hidden p-5 md:p-6 xl:order-1">
+       <div className="mb-6 flex items-start justify-between gap-3">
+         <div className="min-w-0"><p className="muted mb-1 text-sm">{noIncomeYet ? `Gastos de ${monthLabel(month)}` : viewingCurrentMonth ? "Este mes te quedan" : `Balance de ${monthLabel(month)}`}</p><p className={`amount m-0 break-words text-[34px] font-semibold tracking-[-.05em] sm:text-[40px] ${overspent && !noIncomeYet ? "text-[var(--expense)]" : ""}`}>{noIncomeYet ? euro(expenses) : euro(savings)}</p></div>
+         {viewingCurrentMonth && <div className="hidden shrink-0 items-center gap-2 rounded-full bg-[var(--soft-blue)] px-3 py-2 text-xs font-semibold text-[var(--muted)] sm:flex"><span className="h-2 w-2 rounded-full bg-[var(--income)]" /> Mes actual</div>}
       </div>
       <div className="relative mb-3 flex h-4 overflow-hidden rounded-full bg-[var(--soft-blue)]" role="img" aria-label={overspent ? `Gastos: ${euro(expenses)}, ingresos: ${euro(income)}, exceso: ${euro(expenses - income)}` : `${Math.round(spentPercent)}% de los ingresos gastados`}>
           {overspent ? <span className="h-full w-full bg-[var(--expense)]" /> : <>
@@ -53,20 +53,15 @@ export function Dashboard({ month, transactions, categories }: { month: string; 
           {savingsPercent > 0 && <span className="ml-auto h-full min-w-[2px] flex-1" style={{ background: "repeating-linear-gradient(135deg, transparent, transparent 4px, var(--brass) 4px, var(--brass) 6px)" }} />}
         </>}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm"><span className="muted">{euro(expenses)} gastados de {euro(income)}</span><span className={`font-semibold ${overspent ? "text-[var(--expense)]" : "text-[var(--brass)]"}`}>{overspent ? `${euro(expenses - income)} por encima` : `${Math.round(savingsPercent)}% ahorrado`}</span></div>
+       <div className="flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm"><span className="muted">{euro(expenses)} gastados de {euro(income)}</span><span className={`font-semibold ${overspent && !noIncomeYet ? "text-[var(--expense)]" : "text-[var(--brass)]"}`}>{noIncomeYet ? "Aún no hay ingresos registrados" : overspent ? `${euro(fromCents(savingsCents * -1))} por encima` : `${Math.round(savingsPercent)}% ahorrado`}</span></div>
       <div className="mt-auto grid grid-cols-2 gap-3 pt-6">
         <div className="soft-card p-4"><div className="mb-2 flex items-center gap-2 text-xs text-[var(--muted)]"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--income)_14%,transparent)] text-[var(--income)]"><ArrowDownLeft size={17} /></span>Ingresos</div><p className="amount m-0 text-lg font-semibold">{euro(income)}</p></div>
         <div className="soft-card p-4"><div className="mb-2 flex items-center gap-2 text-xs text-[var(--muted)]"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--expense)_14%,transparent)] text-[var(--expense)]"><ArrowUpRight size={17} /></span>Gastos</div><p className="amount m-0 text-lg font-semibold">{euro(expenses)}</p></div>
       </div>
     </section>
 
+      <RecentTransactions month={month} transactions={recent} categories={categories}/>
+      <BudgetCard categories={categories} spentByCategory={categorySpent}/>
       <CategoryBreakdownCard month={month} data={breakdown}/>
-
-    <BudgetCard categories={categories} spentByCategory={categorySpent}/>
-
-    <section className="card flex h-full flex-col p-5 md:p-6">
-      <div className="mb-3 flex items-start justify-between gap-3"><div><h2 className="m-0 text-base font-semibold">Últimos movimientos</h2><p className="muted mb-0 mt-1 text-sm">Lo más reciente de tu mes</p></div><Link href={month === currentMonth() ? "/transactions" : `/transactions?month=${month}`} className="flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-semibold text-[var(--ink)] no-underline hover:bg-[var(--soft-blue)]">Ver todos <ArrowRight size={15} /></Link></div>
-      {recent.length ? <ul className="motion-list m-0 list-none divide-y divide-[var(--line)] p-0">{recent.map((transaction) => { const category = transaction.category_id ? categoryById.get(transaction.category_id) : null; return <li key={transaction.id} className="flex items-center gap-3 py-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ color: category?.color || "var(--muted)", backgroundColor: category?.color ? `color-mix(in srgb, ${category.color} 14%, transparent)` : "var(--soft-blue)" }}><CategoryIcon name={category?.icon} size={18} /></span><div className="min-w-0 flex-1"><p className="m-0 truncate text-sm font-medium">{transaction.description || category?.name || "Movimiento"}</p><p className="muted m-0 mt-1 text-xs">{category?.name || "Sin categoría"} · {dateLabel(transaction.date)}</p></div><span className={`amount shrink-0 whitespace-nowrap text-xs font-semibold sm:text-sm ${transaction.type === "income" ? "text-[var(--income)]" : ""}`}>{transaction.type === "income" ? "+" : "−"}{euro(transaction.amount)}</span></li>; })}</ul> : <EmptyState icon={<Wallet size={20}/>} title="Todavía no hay movimientos" description="Pulsa + y apunta el primero."/>}
-    </section>
   </div>;
 }
