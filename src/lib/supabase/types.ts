@@ -67,7 +67,7 @@ export type Database = {
         { foreignKeyName: "transaction_category_type_owner"; columns: ["category_id", "user_id", "type"]; isOneToOne: false; referencedRelation: "categories"; referencedColumns: ["id", "user_id", "type"] },
         { foreignKeyName: "transaction_recurring_owner"; columns: ["recurring_id", "user_id"]; isOneToOne: false; referencedRelation: "recurring_transactions"; referencedColumns: ["id", "user_id"] },
       ]>;
-      recurring_transactions: Table<RecurringTransaction, Omit<RecurringTransaction, "id" | "created_at" | "user_id" | "anchor_date"> & { id?: string; user_id?: string; anchor_date?: string; created_at?: string }, Partial<Omit<RecurringTransaction, "anchor_date">>, [
+      recurring_transactions: Table<RecurringTransaction, Omit<RecurringTransaction, "id" | "created_at" | "user_id" | "anchor_date"> & { id?: string; user_id?: string; anchor_date?: string; created_at?: string }, Partial<RecurringTransaction>, [
         { foreignKeyName: "recurring_category_owner"; columns: ["category_id", "user_id"]; isOneToOne: false; referencedRelation: "categories"; referencedColumns: ["id", "user_id"] },
         { foreignKeyName: "recurring_category_type_owner"; columns: ["category_id", "user_id", "type"]; isOneToOne: false; referencedRelation: "categories"; referencedColumns: ["id", "user_id", "type"] },
       ]>;
