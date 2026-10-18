@@ -12,6 +12,11 @@ export function CategoryPicker({
   onChange,
   allLabel = "Todas las categorías",
   label = "Categoría",
+  triggerText,
+  mobileSheet = false,
+  portal = true,
+  portalToDialog = false,
+  compact = false,
   className,
 }: {
   categories: Category[];
@@ -19,11 +24,16 @@ export function CategoryPicker({
   onChange: (value: string) => void;
   allLabel?: string;
   label?: string;
+  triggerText?: string;
+  mobileSheet?: boolean;
+  portal?: boolean;
+  portalToDialog?: boolean;
+  compact?: boolean;
   className?: string;
 }) {
   const selected = categories.find((category) => category.id === value);
-  return <Popover label={label} panelRole="listbox" align="end" className={cx("!flex w-full min-w-0", className)} panelClassName="max-h-[min(65dvh,420px)] w-[min(300px,calc(100vw-40px))] overflow-y-auto space-y-1" trigger={({ onClick, expanded, controls, triggerRef }) => <button ref={triggerRef} type="button" aria-label={label} aria-haspopup="listbox" aria-expanded={expanded} aria-controls={controls} onClick={onClick} className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-[var(--control-line)] bg-[var(--surface)] px-3 text-left text-sm text-[var(--ink)] hover:bg-[var(--soft-blue)]">
-    {selected ? <span className="flex min-w-0 flex-1 items-center gap-2"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ color: selected.color, backgroundColor: `color-mix(in srgb, ${selected.color} 15%, transparent)` }}><CategoryIcon name={selected.icon} size={16}/></span><span className="truncate">{selected.name}</span></span> : <span className="min-w-0 flex-1 truncate">{allLabel}</span>}
+  return <Popover label={label} panelRole="listbox" portal={portal} portalToDialog={portalToDialog} mobileSheet={mobileSheet} align="end" className={cx(compact ? "min-w-[5.5rem]" : "!flex w-full min-w-0", className)} panelClassName="max-h-[min(65dvh,420px)] w-[min(300px,calc(100vw-40px))] overflow-y-auto space-y-1" trigger={({ onClick, expanded, controls, triggerRef }) => <button ref={triggerRef} type="button" aria-label={triggerText ? `${triggerText}: ${label}` : label} aria-haspopup="listbox" aria-expanded={expanded} aria-controls={controls} onClick={onClick} className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-[var(--control-line)] bg-[var(--surface)] px-3 text-left text-sm text-[var(--ink)] hover:bg-[var(--soft-blue)]">
+    {triggerText ? <span className="min-w-0 flex-1 truncate">{triggerText}</span> : selected ? <span className="flex min-w-0 flex-1 items-center gap-2"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ color: selected.color, backgroundColor: `color-mix(in srgb, ${selected.color} 15%, transparent)` }}><CategoryIcon name={selected.icon} size={16}/></span><span className="truncate">{selected.name}</span></span> : <span className="min-w-0 flex-1 truncate">{allLabel}</span>}
     <ChevronDown size={16} className="shrink-0 text-[var(--muted)]"/>
   </button>}>
      {(close) => <>{

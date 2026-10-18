@@ -17,6 +17,7 @@ export function Popover({
   mobileSheet = false,
   panelRole,
   portal = true,
+  portalToDialog = false,
 }: {
   label: string;
   trigger: (props: { onClick: () => void; expanded: boolean; controls: string; triggerRef: RefObject<HTMLButtonElement | null> }) => React.ReactNode;
@@ -27,9 +28,11 @@ export function Popover({
   mobileSheet?: boolean;
   panelRole?: "menu" | "listbox" | "dialog";
   portal?: boolean;
+  portalToDialog?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<Position | null>(null);
+  const [portalContainer, setPortalContainer] = useState<Element | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -42,6 +45,7 @@ export function Popover({
       close(false);
       return;
     }
+    setPortalContainer(portalToDialog ? root.current?.closest("dialog") || null : null);
     const triggerBounds = root.current?.getBoundingClientRect();
     if (!triggerBounds || isMobileSheetViewport(mobileSheet)) {
       setPosition(null);
@@ -70,6 +74,7 @@ export function Popover({
     }
     wasOpen.current = true;
     const isMobileSheet = isMobileSheetViewport(mobileSheet);
+    const ownerDialog = portalToDialog ? root.current?.closest("dialog") : null;
     const updatePosition = () => {
       const triggerBounds = root.current?.getBoundingClientRect();
       const panel = panelRef.current;
@@ -91,6 +96,8 @@ export function Popover({
         close(true);
       }
     };
+    const onOwnerDialogClose = () => close(false);
+    ownerDialog?.addEventListener("close", onOwnerDialogClose);
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     const focusInitialItem = () => {
@@ -111,13 +118,15 @@ export function Popover({
         window.removeEventListener("scroll", updatePosition, true);
         document.removeEventListener("pointerdown", onPointerDown);
         document.removeEventListener("keydown", onKeyDown);
+        ownerDialog?.removeEventListener("close", onOwnerDialogClose);
       };
     }
     return () => {
       document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
+      ownerDialog?.removeEventListener("close", onOwnerDialogClose);
     };
-  }, [open, align, mobileSheet, close, restoreFocus]);
+  }, [open, align, mobileSheet, close, restoreFocus, portalToDialog]);
 
   const panel = open ? <>
     {mobileSheet && <div className="fixed inset-0 z-[59] bg-[var(--scrim)] backdrop-blur-[2px] md:hidden" aria-hidden="true" onClick={() => close(false)} />}
@@ -153,6 +162,6 @@ export function Popover({
 
   return <div ref={root} className={cx("relative inline-flex", className)}>
     {trigger({ onClick: toggle, expanded: open, controls: panelId, triggerRef })}
-    {panel && (portal && typeof document !== "undefined" ? createPortal(panel, document.body) : panel)}
+    {panel && (portal && typeof document !== "undefined" ? createPortal(panel, portalContainer || document.body) : panel)}
   </div>;
 }

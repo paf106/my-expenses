@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { ArrowLeft, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { currentMonth, parseMonth } from "@/lib/utils";
-import { TransactionDialog } from "@/components/transaction-dialog";
+import { currentMonth, dateLabel, euro, localToday, parseMonth } from "@/lib/utils";
+import { TransactionDialog, type SavedMovement } from "@/components/transaction-dialog";
+import { UndoSnackbar } from "@/components/ui/undo-snackbar";
+import { CategoryIcon } from "@/components/ui/category-icon";
 import { Button } from "@/components/ui/primitives";
 import { TransactionDialogContext } from "@/components/transaction-dialog-context";
 import type { MonthTransaction, TransactionType } from "@/lib/supabase/types";
@@ -32,8 +34,9 @@ export function AppShell({ children, categories, initialMonth }: { children: Rea
   const [quickAddType, setQuickAddType] = useState<TransactionType>("expense");
   const [dialogSession, setDialogSession] = useState(0);
   const [editingTransaction, setEditingTransaction] = useState<MonthTransaction | null>(null);
-  const [toast, setToast] = useState("");
-  const toastTimer = useRef<number | null>(null);
+  const [savedMovement, setSavedMovement] = useState<SavedMovement | null>(null);
+  const [undoSavedPending, startUndoSavedTransition] = useTransition();
+  const [undoSavedError, setUndoSavedError] = useState("");
   const openTimer = useRef<number | null>(null);
   const targetMonth = useRef<string | null>(null);
   const [monthPending, startMonthTransition] = useTransition();
@@ -73,10 +76,7 @@ export function AppShell({ children, categories, initialMonth }: { children: Rea
   }, [online, openQuickAdd, pathname, router, search]);
 
   useEffect(() => { targetMonth.current = month; }, [month]);
-  useEffect(() => () => {
-    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
-    if (openTimer.current !== null) window.clearTimeout(openTimer.current);
-  }, []);
+  useEffect(() => () => { if (openTimer.current !== null) window.clearTimeout(openTimer.current); }, []);
 
   const moveMonth = (amount: number) => {
     const next = toMonthDate(targetMonth.current || month);
@@ -89,10 +89,21 @@ export function AppShell({ children, categories, initialMonth }: { children: Rea
     startMonthTransition(() => router.push(`${pathname}?${params.toString()}`));
   };
   const logout = async () => { await clearOfflineCache(); await createClient().auth.signOut(); router.push("/login"); router.refresh(); };
-  const notify = (message: string) => {
-    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current);
-    setToast(message);
-    toastTimer.current = window.setTimeout(() => { setToast(""); toastTimer.current = null; }, 2800);
+  const closeSavedNotice = () => { if (!undoSavedPending) { setSavedMovement(null); setUndoSavedError(""); } };
+  const undoSaved = () => {
+    if (!savedMovement || undoSavedPending) return;
+    if (!online) { setUndoSavedError("Conéctate a internet para deshacer este cambio."); return; }
+    setUndoSavedError("");
+    startUndoSavedTransition(async () => {
+      const supabase = createClient();
+      const { current, previous } = savedMovement;
+      const result = previous
+        ? await supabase.from("transactions").update({ type: previous.type, amount: previous.amount, description: previous.description, category_id: previous.category_id, recurring_id: previous.recurring_id, date: previous.date }).eq("id", current.id)
+        : await supabase.from("transactions").delete().eq("id", current.id);
+      if (result.error) { setUndoSavedError("No se pudo deshacer. Comprueba tu conexión e inténtalo de nuevo."); return; }
+      setSavedMovement(null);
+      router.refresh();
+    });
   };
   const activePath = useMemo(() => pathname.startsWith("/settings/") ? "/settings" : pathname, [pathname]);
   const dialogContext = useMemo(() => ({ openNew: openQuickAdd, openEdit }), [openQuickAdd, openEdit]);
@@ -119,8 +130,21 @@ export function AppShell({ children, categories, initialMonth }: { children: Rea
     </div>
 
     {showMobileNav && <MobileNavigation activePath={activePath} showAdd={showAdd} offline={!online} onAdd={() => openQuickAdd()}/>}
-    <TransactionDialog key={`${editingTransaction?.id || `new-${quickAddType}`}-${dialogSession}`} categories={categories} open={dialogOpen || Boolean(editingTransaction)} transaction={editingTransaction} defaultType={quickAddType} offline={!online} onClose={() => { setDialogOpen(false); setEditingTransaction(null); }} onSaved={() => { setDialogOpen(false); setEditingTransaction(null); notify("Movimiento guardado"); router.refresh(); }} />
-     <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{toast}</div>
-     {toast && <div aria-hidden="true" className={`toast-enter fixed left-1/2 z-50 -translate-x-1/2 rounded-xl bg-[var(--primary)] px-5 py-3 text-sm font-medium text-[var(--primary-ink)] shadow-xl md:bottom-8 ${showMobileNav ? "bottom-[calc(env(safe-area-inset-bottom)+92px)]" : "bottom-[calc(env(safe-area-inset-bottom)+20px)]"}`}>{toast}</div>}
+    <TransactionDialog key={`${editingTransaction?.id || `new-${quickAddType}`}-${dialogSession}`} categories={categories} open={dialogOpen || Boolean(editingTransaction)} transaction={editingTransaction} defaultType={quickAddType} offline={!online} onClose={() => { setDialogOpen(false); setEditingTransaction(null); }} onSaved={(saved) => { setDialogOpen(false); setEditingTransaction(null); setSavedMovement(saved); setUndoSavedError(""); router.refresh(); }} />
+    <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{savedMovement ? `${savedMovement.previous ? "Cambios guardados" : savedMovement.current.type === "income" ? "Ingreso guardado" : "Gasto guardado"}. Puedes deshacerlo o añadir otro.` : ""}</div>
+    {savedMovement && <UndoSnackbar
+      key={savedMovement.current.id}
+      title={savedMovement.previous ? "Cambios guardados" : savedMovement.current.type === "income" ? "Ingreso guardado" : "Gasto guardado"}
+       detail={`${savedMovement.current.description || categories.find((item) => item.id === savedMovement.current.category_id)?.name || "Movimiento"}${savedMovement.current.date !== localToday() ? ` · ${dateLabel(savedMovement.current.date)}` : ""}`}
+      amount={`${savedMovement.current.type === "income" ? "+" : "−"}${euro(savedMovement.current.amount)}`}
+      amountClassName={savedMovement.current.type === "income" ? "text-[var(--income)]" : ""}
+      icon={<CategoryIcon name={categories.find((item) => item.id === savedMovement.current.category_id)?.icon} size={19}/>}
+      onUndo={undoSaved}
+      onClose={closeSavedNotice}
+      restoring={undoSavedPending}
+      error={undoSavedError}
+      live={false}
+      secondaryAction={!savedMovement.previous ? { label: "Añadir otro", onClick: () => { if (!online) { setUndoSavedError("Conéctate a internet para apuntar otro movimiento."); return; } const type = savedMovement.current.type; closeSavedNotice(); openQuickAdd(type); } } : undefined}
+    />}
   </div></TransactionDialogContext.Provider>;
 }

@@ -89,7 +89,7 @@
   .amount { font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
   .nav-link { color: var(--muted); transition: color .16s ease, background .16s ease; }
   .nav-link:hover, .nav-link[aria-current="page"] { color: var(--ink); background: var(--soft-blue); }
-  .dialog-sheet { margin: auto 0 0; width: 100%; max-width: none; max-height: min(90dvh, 720px); border: 1px solid var(--line); border-bottom: 0; border-radius: 24px 24px 0 0; background: var(--surface); color: var(--ink); padding: 0; box-shadow: 0 -20px 70px #0b163522; }
+  .dialog-sheet { margin: auto 0 0; bottom: var(--dialog-keyboard-inset, 0px); width: 100%; max-width: none; max-height: min(var(--dialog-available-height, 90dvh), 720px); overflow: hidden; border: 1px solid var(--line); border-bottom: 0; border-radius: 24px 24px 0 0; background: var(--surface); color: var(--ink); padding: 0; box-shadow: 0 -20px 70px #0b163522; }
   .dialog-sheet form, .category-editor-dialog, .popover-panel { overscroll-behavior: contain; }
   .dialog-sheet::backdrop, .category-editor-dialog::backdrop { background: var(--scrim); backdrop-filter: blur(3px); }
   .dialog-sheet[open] { animation: rise var(--motion-medium) ease-out backwards; }
@@ -164,13 +164,24 @@
   .undo-snackbar-action { display: inline-flex; min-height: 44px; flex: 0 0 auto; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 12px; background: color-mix(in srgb, var(--focus) 12%, var(--surface)); padding: 0 10px; color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 700; white-space: nowrap; transition: background-color var(--motion-fast) ease, opacity var(--motion-fast) ease; }
   .undo-snackbar-action:hover { background: color-mix(in srgb, var(--focus) 18%, var(--surface)); }
   .undo-snackbar-action:disabled { cursor: wait; opacity: .75; }
+  .undo-snackbar-more { display: inline-flex; min-height: 44px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid var(--control-line); border-radius: 12px; background: var(--surface); padding: 0 10px; color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 650; white-space: nowrap; }
+  .undo-snackbar-more:hover { background: var(--soft-blue); }
+  .undo-snackbar-more:disabled { cursor: wait; opacity: .75; }
   .undo-snackbar-close { display: inline-flex; width: 44px; height: 44px; flex: 0 0 44px; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: var(--muted); }
   .undo-snackbar-close:hover { background: var(--soft-blue); color: var(--ink); }
   .undo-snackbar-progress { position: absolute; right: 0; bottom: 0; left: 0; height: 2px; transform: scaleX(1); transform-origin: left; background: var(--focus); animation: snackbar-countdown var(--snackbar-duration, 6000ms) linear forwards; }
   .undo-snackbar.is-paused .undo-snackbar-progress { animation-play-state: paused; }
   .undo-snackbar-spinner { width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: snackbar-spin .7s linear infinite; }
   .snackbar-enter { animation: snackbar-enter var(--motion-medium) cubic-bezier(.2,.8,.2,1) backwards; }
-  @media (min-width: 768px) { .undo-snackbar { right: 0; bottom: 32px; left: 248px; width: min(440px, calc(100vw - 296px)); } }
+@media (min-width: 768px) { .undo-snackbar { right: 0; bottom: 32px; left: 248px; width: min(440px, calc(100vw - 296px)); } }
+@media (max-width: 420px) {
+  .undo-snackbar.has-secondary { display: grid; grid-template-areas: "icon copy copy close" "undo undo more more"; grid-template-columns: 36px minmax(0, 1fr) minmax(0, 1fr) 44px; gap: 6px; padding: 10px; }
+  .undo-snackbar.has-secondary .undo-snackbar-icon { grid-area: icon; width: 36px; height: 36px; flex-basis: 36px; }
+  .undo-snackbar.has-secondary .undo-snackbar-copy { grid-area: copy; }
+  .undo-snackbar.has-secondary .undo-snackbar-close { grid-area: close; }
+  .undo-snackbar.has-secondary .undo-snackbar-action { grid-area: undo; width: 100%; }
+  .undo-snackbar.has-secondary .undo-snackbar-more { grid-area: more; width: 100%; }
+}
 }
 
 @keyframes rise { from { transform: translateY(24px); opacity: .7; } to { transform: translateY(0); opacity: 1; } }

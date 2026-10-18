@@ -12,13 +12,15 @@ type UndoSnackbarProps = {
   icon: React.ReactNode;
   onUndo: () => void;
   onClose: () => void;
+  secondaryAction?: { label: string; onClick: () => void };
+  live?: boolean;
   restoring?: boolean;
   error?: string;
   duration?: number;
   autoFocus?: boolean;
 };
 
-export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onUndo, onClose, restoring = false, error, duration = 12000, autoFocus = false }: UndoSnackbarProps) {
+export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onUndo, onClose, secondaryAction, live = true, restoring = false, error, duration = 12000, autoFocus = false }: UndoSnackbarProps) {
   const root = useRef<HTMLDivElement>(null);
   const timer = useRef<number | null>(null);
   const deadline = useRef(0);
@@ -66,11 +68,12 @@ export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onU
 
   return <div
     ref={root}
-    className={cx("undo-snackbar glass-surface snackbar-enter fixed z-40", (paused || restoring) && "is-paused")}
+    className={cx("undo-snackbar glass-surface snackbar-enter fixed z-40", secondaryAction && "has-secondary", (paused || restoring) && "is-paused")}
     style={{ "--snackbar-duration": `${duration}ms` } as React.CSSProperties}
-    role="status"
-    aria-live="polite"
-    aria-atomic="true"
+    role={live ? "status" : "group"}
+    aria-label={live ? undefined : title}
+    aria-live={live ? "polite" : undefined}
+    aria-atomic={live ? "true" : undefined}
     onPointerEnter={(event) => { if (event.pointerType === "mouse") pause("pointer"); }}
     onPointerLeave={(event) => { if (event.pointerType === "mouse") resume("pointer"); }}
     onFocusCapture={(event) => { if (event.target instanceof HTMLElement && event.target.matches(":focus-visible")) pause("focus"); }}
@@ -98,6 +101,7 @@ export function UndoSnackbar({ title, detail, amount, amountClassName, icon, onU
       {restoring ? <span className="undo-snackbar-spinner" aria-hidden="true"/> : <RotateCcw size={15} aria-hidden="true"/>}
       <span>{restoring ? "Restaurando…" : "Deshacer"}</span>
     </button>
+    {secondaryAction && <button type="button" onClick={secondaryAction.onClick} disabled={restoring} className="undo-snackbar-more">{secondaryAction.label}</button>}
     <button type="button" onClick={onClose} aria-label="Cerrar aviso" className="undo-snackbar-close"><X size={17}/></button>
     <span key={duration} className="undo-snackbar-progress" aria-hidden="true"/>
   </div>;
