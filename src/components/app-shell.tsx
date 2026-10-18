@@ -119,13 +119,12 @@ export function AppShell({ children, categories, initialMonth }: { children: Rea
           <div className="min-w-0 flex-1"><h1 className="m-0 truncate text-[19px] font-semibold tracking-tight md:text-[24px]">{pageTitle}</h1></div>
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {showMonth && <MonthSwitcher month={month} isCurrentMonth={isCurrentMonth} pending={monthPending} onMove={moveMonth}/>}
-            {showAdd && <Button disabled={!online} title={!online ? "Vuelve a conectarte para añadir movimientos" : undefined} onClick={() => openQuickAdd()} className="max-md:hidden min-h-11 items-center gap-2 px-4"><Plus size={17} /> Añadir</Button>}
+            {showAdd && <Button disabled={!online} aria-describedby={!online ? "offline-status" : undefined} title={!online ? "Vuelve a conectarte para añadir movimientos" : undefined} onClick={() => openQuickAdd()} className="max-md:hidden min-h-11 items-center gap-2 px-4"><Plus size={17} /> Añadir</Button>}
           </div>
         </div>
       </header>
 
-      <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">{online ? "" : "Sin conexión. Estás viendo los últimos datos guardados."}</div>
-      {!online && <div aria-hidden="true" className="sticky top-[calc(env(safe-area-inset-top)+72px)] z-10 mx-4 mt-2 rounded-xl border border-[var(--line)] bg-[var(--soft-blue)] px-4 py-2 text-center text-xs text-[var(--ink)] md:top-[calc(env(safe-area-inset-top)+96px)] md:mx-10">Sin conexión · Estás viendo los últimos datos guardados</div>}
+      {!online && <div id="offline-status" role="status" aria-live="polite" aria-atomic="true" className="sticky top-[calc(env(safe-area-inset-top)+72px)] z-10 mx-4 mt-2 rounded-xl border border-[color-mix(in_srgb,var(--brass)_35%,var(--line))] bg-[color-mix(in_srgb,var(--brass)_10%,var(--surface))] px-4 py-2.5 text-center text-xs text-[var(--ink)] md:top-[calc(env(safe-area-inset-top)+96px)] md:mx-10"><span className="font-semibold">Sin conexión.</span> Ves datos guardados; los cambios no se guardarán hasta volver a conectarte.</div>}
       <main id="main-content" aria-busy={monthPending || undefined} className={`mx-auto max-w-[1240px] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-5 md:px-10 md:pb-12 md:pt-6 ${showMobileNav ? "pb-[calc(env(safe-area-inset-bottom)+170px)]" : "pb-[calc(env(safe-area-inset-bottom)+32px)]"}`}>{children}</main>
     </div>
 
