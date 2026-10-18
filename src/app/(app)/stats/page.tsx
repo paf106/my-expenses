@@ -9,5 +9,5 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const month = parseMonth(params.month) || currentMonth();
   const { summary, breakdown, trend } = await getMonthlyStats(month);
-  return <StatsView summary={summary} breakdown={breakdown} trend={trend} />;
+  return <StatsView month={month} summary={summary} breakdown={breakdown} trend={trend} />;
 }

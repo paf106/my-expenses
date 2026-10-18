@@ -28,9 +28,10 @@ export function TransactionsSkeleton() {
 
 export function StatsSkeleton() {
   return <LoadingRegion><div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2 xl:gap-6">
-    <section className="grid grid-cols-3 gap-2 xl:col-span-2 sm:gap-3">{[0, 1, 2].map((item) => <div key={item} className="card space-y-3 p-2.5 sm:p-4 md:p-5"><Skeleton className="h-8 w-8"/><Skeleton className="h-3 w-12"/><Skeleton className="h-5 w-full"/></div>)}</section>
-    <section className="card h-full p-5 md:p-6"><CardHeader title="Ingresos y gastos" description="Evolución de los últimos meses"/><Skeleton className="h-[260px] w-full rounded-2xl"/></section>
-    <section className="card h-full p-5 md:p-6"><CardHeader title="Gastos por categoría" description="Distribución de este mes"/><div className="flex flex-col items-center"><Skeleton className="mx-auto aspect-square w-full max-w-[230px] rounded-full"/><div className="w-full space-y-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-4 w-full" />)}</div></div></section>
+    <p className="muted col-span-1 m-0 text-sm xl:col-span-2">Resumen de <Skeleton className="inline-block h-4 w-24 align-middle"/></p>
+    <section className="grid grid-cols-2 gap-3 sm:grid-cols-3">{[0, 1, 2].map((item) => <div key={item} className={`card space-y-3 p-3 sm:p-4 md:p-5 ${item === 2 ? "col-span-2 sm:col-span-1" : ""}`}><Skeleton className="h-9 w-9"/><Skeleton className="h-3 w-16"/><Skeleton className="h-6 w-full"/></div>)}</section>
+    <section className="card order-2 h-full p-5 md:p-6 xl:order-1"><CardHeader title="Ingresos y gastos" description="Comparativa de los últimos seis meses"/><Skeleton className="h-[260px] w-full rounded-2xl"/></section>
+    <section className="card order-1 h-full p-5 md:p-6 xl:order-2"><CardHeader title="Gastos por categoría" description="Distribución del periodo"/><div className="flex flex-col items-center"><Skeleton className="mx-auto h-[230px] w-full max-w-[230px] rounded-full"/><div className="w-full space-y-3">{[0, 1, 2].map((item) => <Skeleton key={item} className="h-10 w-full" />)}</div></div></section>
   </div></LoadingRegion>;
 }
 
